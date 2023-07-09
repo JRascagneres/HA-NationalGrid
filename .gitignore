@@ -1,0 +1,8 @@
+*
+.pyc
+!.gitignore
+!custom_components/national_grid
+!custom_components/national_grid/*
+!custom_components/
+!README.md
+!hacs.json
