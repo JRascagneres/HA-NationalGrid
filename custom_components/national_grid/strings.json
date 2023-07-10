@@ -1,0 +1,12 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "data": {
+                    "api_key": "API Key"
+                },
+                "description": "Visit https://www.elexonportal.co.uk/ to request a token. Follow documentation."
+            }
+        }
+    }
+}

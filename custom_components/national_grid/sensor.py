@@ -21,7 +21,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 
-SCAN_INTERVAL = timedelta(minute=1)
+SCAN_INTERVAL = timedelta(minutes=1)
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -141,8 +141,8 @@ class NationalGridSensor(CoordinatorEntity[NationalGridCoordinator], SensorEntit
 class Grid(CoordinatorEntity[NationalGridCoordinator], Entity):
     """Representation of the Grid"""
 
-    _attr_name = "Grid"
-    entity_id = DOMAIN + ".grid"
+    _attr_name = "Grid Production"
+    entity_id = DOMAIN + ".grid_producton"
 
     grid_gen: float
 
@@ -155,7 +155,7 @@ class Grid(CoordinatorEntity[NationalGridCoordinator], Entity):
 
     @property
     def state(self) -> str:
-        return "State"
+        return "Grid Generation"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

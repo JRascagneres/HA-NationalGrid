@@ -85,7 +85,7 @@ class NationalGridCoordinator(DataUpdateCoordinator[NationalGridData]):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize"""
         super().__init__(
-            hass, _LOGGER, name=DOMAIN, update_interval=timedelta(minute=1)
+            hass, _LOGGER, name=DOMAIN, update_interval=timedelta(minutes=1)
         )
         self._entry = entry
 
@@ -134,27 +134,14 @@ def get_current_price(api_key: str, today_utc: str) -> float:
         + today_utc
         + "&SettlementPeriod=*"
     )
-    response = requests.get(url, timeout=5)
-    data = xmltodict.parse(response.content)
-
-    if int(data["response"]["responseMetadata"]["httpCode"]) == 403:
-        raise InvalidAuthError
-
-    responseList = data["response"]["responseBody"]["responseList"]
-    items = responseList["item"]
-    if type(items) is not list:
-        items = [items]
-    latestResponse = items[len(items) - 1]
+    latestResponse = get_bmrs_data_latest(url)
     currentPrice = round(float(latestResponse["systemSellPrice"]), 2)
     return currentPrice
 
 
 def get_wind_data(api_key: str, today: str, tomorrow: str) -> NationalGridWindData:
     url = "https://api.bmreports.com/BMRS/WINDFORPK/v1?APIKey=" + api_key
-    response = requests.get(url, timeout=5)
-    data = xmltodict.parse(response.content)
-
-    items = data["response"]["responseBody"]["responseList"]["item"]
+    items = get_bmrs_data_items(url)
 
     todayIdx = None
     tomorrowIdx = None
@@ -186,15 +173,7 @@ def get_wind_data(api_key: str, today: str, tomorrow: str) -> NationalGridWindDa
 
 def get_generation(api_key: str) -> NationalGridGeneration:
     url = "https://api.bmreports.com/BMRS/FUELINST/v1?APIKey=" + api_key
-    response = requests.get(url, timeout=5)
-    data = xmltodict.parse(response.content)
-
-    responseList = data["response"]["responseBody"]["responseList"]
-    items = responseList["item"]
-    if type(items) is not list:
-        items = [items]
-
-    latestItem = items[len(items) - 1]
+    latestItem = get_bmrs_data_latest(url)
     gridCollectionTime = datetime.strptime(
         latestItem["publishingPeriodCommencingTime"], "%Y-%m-%d %H:%M:%S"
     )
@@ -202,15 +181,7 @@ def get_generation(api_key: str) -> NationalGridGeneration:
     gridCollectionTime = gridCollectionTime.astimezone(tz=dt_util.now().tzinfo)
 
     url = "https://api.bmreports.com/BMRS/INTERFUELHH/v1?APIKey=" + api_key
-    response = requests.get(url, timeout=5)
-    data = xmltodict.parse(response.content)
-
-    responseList = data["response"]["responseBody"]["responseList"]
-    items = responseList["item"]
-    if type(items) is not list:
-        items = [items]
-
-    latest_interconnectors_item = items[len(items) - 1]
+    latest_interconnectors_item = get_bmrs_data_latest(url)
 
     return NationalGridGeneration(
         gas_mwh=int(latestItem["ccgt"]) + int(latestItem["ocgt"]),
@@ -232,3 +203,30 @@ def get_generation(api_key: str) -> NationalGridGeneration:
         norway_mwh=int(latest_interconnectors_item["intnslGeneration"]),
         gridCollectionTime=gridCollectionTime,
     )
+
+
+def get_bmrs_data(url: str) -> OrderedDict[str, Any]:
+    response = requests.get(url, timeout=5)
+    data = xmltodict.parse(response.content)
+
+    if int(data["response"]["responseMetadata"]["httpCode"]) == 403:
+        raise InvalidAuthError
+
+    return data
+
+
+def get_bmrs_data_items(url: str) -> OrderedDict[str, Any]:
+    data = get_bmrs_data(url)
+    responseList = data["response"]["responseBody"]["responseList"]
+    items = responseList["item"]
+    if type(items) is not list:
+        items = [items]
+
+    return items
+
+
+def get_bmrs_data_latest(url: str) -> OrderedDict[str, Any]:
+    items = get_bmrs_data_items(url)
+    latestResponse = items[len(items) - 1]
+
+    return latestResponse
