@@ -56,6 +56,7 @@ oil_mwh
 coal_mwh
 nuclear_mwh
 wind_mwh
+solar_mwh
 pumped_storage_mwh
 hydro_mwh
 other_mwh

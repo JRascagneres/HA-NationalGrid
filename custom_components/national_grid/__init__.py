@@ -1,5 +1,7 @@
 from __future__ import annotations
 from collections import OrderedDict
+import csv, urllib.request
+import io
 
 import json
 import logging
@@ -54,6 +56,7 @@ class NationalGridGeneration(TypedDict):
     coal_mwh: int  # coal
     nuclear_mwh: int  # nuclear
     wind_mwh: int  # wind
+    solar_mwh: int  # solar
     pumped_storage_mwh: int  # ps - pumped storage
     hydro_mwh: int  # npshyd - non pumped storage hydro plant
     other_mwh: int  # other - undefined
@@ -85,7 +88,7 @@ class NationalGridCoordinator(DataUpdateCoordinator[NationalGridData]):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize"""
         super().__init__(
-            hass, _LOGGER, name=DOMAIN, update_interval=timedelta(minutes=1)
+            hass, _LOGGER, name=DOMAIN, update_interval=timedelta(minutes=5)
         )
         self._entry = entry
 
@@ -106,16 +109,33 @@ class NationalGridCoordinator(DataUpdateCoordinator[NationalGridData]):
 
 def get_data(hass: HomeAssistant, config: Mapping[str, Any]) -> NationalGridData:
     api_key = config[CONF_API_KEY]
-    _LOGGER.info(api_key)
 
     today_utc = dt_util.utcnow().strftime("%Y-%m-%d")
 
     today = dt_util.now().strftime("%Y-%m-%d")
     tomorrow = (dt_util.now() + timedelta(days=1)).strftime("%Y-%m-%d")
 
+    now_utc_full = dt_util.utcnow()
+    now_utc_formatted_datetime = now_utc_full.strftime("%Y-%m-%d %H:%M:%S")
+    two_hours_ago_utc_formatted_datetime = (now_utc_full - timedelta(hours=2)).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+
+    grid_generation = get_generation(
+        api_key, two_hours_ago_utc_formatted_datetime, now_utc_formatted_datetime
+    )
+
+    national_grid_data = get_national_grid_data(today_utc, now_utc_full)
+    if national_grid_data is not None:
+        grid_generation["wind_mwh"] += int(
+            national_grid_data["EMBEDDED_WIND_GENERATION"]
+        )
+        grid_generation["solar_mwh"] = int(
+            national_grid_data["EMBEDDED_SOLAR_GENERATION"]
+        )
+
     currentPrice = get_current_price(api_key, today_utc)
     windData = get_wind_data(api_key, today, tomorrow)
-    grid_generation = get_generation(api_key)
 
     return NationalGridData(
         sellPrice=currentPrice,
@@ -151,8 +171,6 @@ def get_wind_data(api_key: str, today: str, tomorrow: str) -> NationalGridWindDa
         if item["dayAndDate"] == tomorrow:
             tomorrowIdx = idx
 
-    # if todayIdx == None or tomorrowIdx == None:
-
     todayPeak = items[0]["peakMaxGeneration"]
     tomorrowPeak = items[1]["peakMaxGeneration"]
 
@@ -171,8 +189,35 @@ def get_wind_data(api_key: str, today: str, tomorrow: str) -> NationalGridWindDa
     )
 
 
-def get_generation(api_key: str) -> NationalGridGeneration:
-    url = "https://api.bmreports.com/BMRS/FUELINST/v1?APIKey=" + api_key
+def get_national_grid_data(today_utc: str, now_utc: datetime) -> dict[str, Any]:
+    today_minutes = now_utc.hour * 60 + now_utc.minute
+    settlement_period = today_minutes // 30
+
+    url = "https://data.nationalgrideso.com/backend/dataset/7a12172a-939c-404c-b581-a6128b74f588/resource/177f6fa4-ae49-4182-81ea-0c6b35f26ca6/download/demanddataupdate.csv"
+    response = requests.get(url, timeout=10)
+    response_data = response.content.decode("utf-8")
+    reader = csv.DictReader(io.StringIO(response_data))
+    for row in reader:
+        if (
+            row["SETTLEMENT_DATE"] == today_utc
+            and int(row["SETTLEMENT_PERIOD"]) == settlement_period
+        ):
+            return row
+
+    return None
+
+
+def get_generation(
+    api_key: str, from_datetime: str, to_datetime: str
+) -> NationalGridGeneration:
+    url = (
+        "https://api.bmreports.com/BMRS/FUELINST/v1?APIKey="
+        + api_key
+        + "&FromDateTime="
+        + from_datetime
+        + "&ToDateTime="
+        + to_datetime
+    )
     latestItem = get_bmrs_data_latest(url)
     gridCollectionTime = datetime.strptime(
         latestItem["publishingPeriodCommencingTime"], "%Y-%m-%d %H:%M:%S"
@@ -201,12 +246,13 @@ def get_generation(api_key: str) -> NationalGridGeneration:
         biomass_mwh=int(latestItem["biomass"]),
         belgium_mwh=int(latest_interconnectors_item["intnemGeneration"]),
         norway_mwh=int(latest_interconnectors_item["intnslGeneration"]),
+        solar_mwh=0,
         gridCollectionTime=gridCollectionTime,
     )
 
 
 def get_bmrs_data(url: str) -> OrderedDict[str, Any]:
-    response = requests.get(url, timeout=5)
+    response = requests.get(url, timeout=10)
     data = xmltodict.parse(response.content)
 
     if int(data["response"]["responseMetadata"]["httpCode"]) == 403:
