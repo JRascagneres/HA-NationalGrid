@@ -66,22 +66,23 @@ class NationalGridGeneration(TypedDict):
     biomass_mwh: int  # biomass
     belgium_mwh: int  # intnem ( Nemo )
     norway_mwh: int  # intnsl ( North Sea Link )
-    gridCollectionTime: datetime
+    grid_collection_time: datetime
 
 
 class NationalGridWindData(TypedDict):
-    todayPeak: float
-    tomorrowPeak: float
-    todayPeakTime: datetime
-    tomorrowPeakTime: datetime
+    today_peak: float
+    tomorrow_peak: float
+    today_peak_time: datetime
+    tomorrow_peak_time: datetime
 
 
 class NationalGridData(TypedDict):
     """Data field"""
 
-    sellPrice: float
-    windData: NationalGridWindData
-    gridGeneration: NationalGridGeneration
+    sell_price: float
+    carbon_intensity: int
+    wind_data: NationalGridWindData
+    grid_generation: NationalGridGeneration
 
 
 class NationalGridCoordinator(DataUpdateCoordinator[NationalGridData]):
@@ -99,7 +100,7 @@ class NationalGridCoordinator(DataUpdateCoordinator[NationalGridData]):
     async def _async_update_data(self) -> NationalGridData:
         try:
             data = await self.hass.async_add_executor_job(
-                get_data, self.hass, self._entry.data
+                get_data, self.hass, self._entry.data, self.data
             )
         except:
             raise Exception()  # pylint: disable=broad-exception-raised
@@ -107,7 +108,9 @@ class NationalGridCoordinator(DataUpdateCoordinator[NationalGridData]):
         return data
 
 
-def get_data(hass: HomeAssistant, config: Mapping[str, Any]) -> NationalGridData:
+def get_data(
+    hass: HomeAssistant, config: Mapping[str, Any], current_data: NationalGridData
+) -> NationalGridData:
     api_key = config[CONF_API_KEY]
 
     today_utc = dt_util.utcnow().strftime("%Y-%m-%d")
@@ -121,27 +124,58 @@ def get_data(hass: HomeAssistant, config: Mapping[str, Any]) -> NationalGridData
         "%Y-%m-%d %H:%M:%S"
     )
 
-    grid_generation = get_generation(
-        api_key, two_hours_ago_utc_formatted_datetime, now_utc_formatted_datetime
-    )
+    try:
+        carbon_intensity = get_carbon_intensity(now_utc_full)
+    except Exception as e:  # pylint: disable=broad-except
+        _LOGGER.exception("Failed to obtain carbon itensity data")
+        carbon_intensity = get_data_if_exists(current_data, "carbon_intensity")
 
-    national_grid_data = get_national_grid_data(today_utc, now_utc_full)
-    if national_grid_data is not None:
-        grid_generation["wind_mwh"] += int(
-            national_grid_data["EMBEDDED_WIND_GENERATION"]
-        )
-        grid_generation["solar_mwh"] = int(
-            national_grid_data["EMBEDDED_SOLAR_GENERATION"]
+    try:
+        grid_generation = get_generation(
+            api_key, two_hours_ago_utc_formatted_datetime, now_utc_formatted_datetime
         )
 
-    currentPrice = get_current_price(api_key, today_utc)
-    windData = get_wind_data(api_key, today, tomorrow)
+        national_grid_data = get_national_grid_data(today_utc, now_utc_full)
+        if national_grid_data is not None:
+            grid_generation["wind_mwh"] += int(
+                national_grid_data["EMBEDDED_WIND_GENERATION"]
+            )
+            grid_generation["solar_mwh"] = int(
+                national_grid_data["EMBEDDED_SOLAR_GENERATION"]
+            )
+    except Exception as e:  # pylint: disable=broad-except
+        _LOGGER.exception("Failed to obtain grid generation data")
+        grid_generation = get_data_if_exists(current_data, "grid_generation")
+
+    try:
+        current_price = get_current_price(api_key, today_utc)
+    except Exception as e:  # pylint: disable=broad-except
+        _LOGGER.exception("Failed to obtain current price")
+        current_price = get_data_if_exists(current_data, "sell_price")
+
+    try:
+        wind_data = get_wind_data(api_key, today, tomorrow)
+    except Exception as e:  # pylint: disable=broad-except
+        _LOGGER.exception("Failed to obtain wind data")
+        wind_data = get_data_if_exists(current_data, "wind_data")
 
     return NationalGridData(
-        sellPrice=currentPrice,
-        windData=windData,
-        gridGeneration=grid_generation,
+        sell_price=current_price,
+        carbon_intensity=carbon_intensity,
+        wind_data=wind_data,
+        grid_generation=grid_generation,
     )
+
+
+def get_data_if_exists(data, key: str):
+    if data is None:
+        _LOGGER.error("Previous data is None, returning None")
+        return None
+    if key in data:
+        _LOGGER.error("Returning previous data")
+        return data[key]
+
+    return None
 
 
 def get_current_price(api_key: str, today_utc: str) -> float:
@@ -171,21 +205,21 @@ def get_wind_data(api_key: str, today: str, tomorrow: str) -> NationalGridWindDa
         if item["dayAndDate"] == tomorrow:
             tomorrowIdx = idx
 
-    todayPeak = items[0]["peakMaxGeneration"]
-    tomorrowPeak = items[1]["peakMaxGeneration"]
+    today_peak = items[0]["peakMaxGeneration"]
+    tomorrow_peak = items[1]["peakMaxGeneration"]
 
-    todayPeakTime = datetime.strptime(
+    today_peak_time = datetime.strptime(
         items[0]["dayAndDate"] + items[0]["startTimeOfHalfHrPeriod"], "%Y-%m-%d%H:%M"
     )
-    tomorrowPeakTime = datetime.strptime(
+    tomorrow_peak_time = datetime.strptime(
         items[1]["dayAndDate"] + items[1]["startTimeOfHalfHrPeriod"], "%Y-%m-%d%H:%M"
     )
 
     return NationalGridWindData(
-        todayPeak=todayPeak,
-        tomorrowPeak=tomorrowPeak,
-        todayPeakTime=todayPeakTime,
-        tomorrowPeakTime=tomorrowPeakTime,
+        today_peak=today_peak,
+        tomorrow_peak=tomorrow_peak,
+        today_peak_time=today_peak_time,
+        tomorrow_peak_time=tomorrow_peak_time,
     )
 
 
@@ -207,6 +241,19 @@ def get_national_grid_data(today_utc: str, now_utc: datetime) -> dict[str, Any]:
     return None
 
 
+def get_carbon_intensity(now_utc_full: datetime) -> int:
+    formatted_datetime = now_utc_full.strftime("%Y-%m-%dT%H:%MZ")
+    url = (
+        "https://api.carbonintensity.org.uk/intensity/" + formatted_datetime + "/pt24h"
+    )
+    response = requests.get(url, timeout=10)
+    data = json.loads(response.content)
+    for item in reversed(data["data"]):
+        if item["intensity"]["actual"] is not None:
+            return int(item["intensity"]["actual"])
+    return None
+
+
 def get_generation(
     api_key: str, from_datetime: str, to_datetime: str
 ) -> NationalGridGeneration:
@@ -219,11 +266,11 @@ def get_generation(
         + to_datetime
     )
     latestItem = get_bmrs_data_latest(url)
-    gridCollectionTime = datetime.strptime(
+    grid_collection_time = datetime.strptime(
         latestItem["publishingPeriodCommencingTime"], "%Y-%m-%d %H:%M:%S"
     )
-    gridCollectionTime = gridCollectionTime.replace(tzinfo=tz.tzutc())
-    gridCollectionTime = gridCollectionTime.astimezone(tz=dt_util.now().tzinfo)
+    grid_collection_time = grid_collection_time.replace(tzinfo=tz.tzutc())
+    grid_collection_time = grid_collection_time.astimezone(tz=dt_util.now().tzinfo)
 
     url = "https://api.bmreports.com/BMRS/INTERFUELHH/v1?APIKey=" + api_key
     latest_interconnectors_item = get_bmrs_data_latest(url)
@@ -247,7 +294,7 @@ def get_generation(
         belgium_mwh=int(latest_interconnectors_item["intnemGeneration"]),
         norway_mwh=int(latest_interconnectors_item["intnslGeneration"]),
         solar_mwh=0,
-        gridCollectionTime=gridCollectionTime,
+        grid_collection_time=grid_collection_time,
     )
 
 

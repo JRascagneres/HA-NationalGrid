@@ -35,11 +35,11 @@ class NationalGridConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         try:
-            await self.hass.async_add_executor_job(get_data, self.hass, data)
+            await self.hass.async_add_executor_job(get_data, self.hass, data, None)
         except InvalidAuthError as e:
             _LOGGER.error("Auth error ocurred")
             errors["base"] = "Invalid API Key"
-        except Exception:  # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             _LOGGER.error(e)
             errors["base"] = "error"
 

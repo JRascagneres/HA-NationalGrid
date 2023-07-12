@@ -4,7 +4,6 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
-from config.custom_components.national_grid import NationalGridCoordinator
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -19,6 +18,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import NationalGridCoordinator
 from .const import DOMAIN
 
 SCAN_INTERVAL = timedelta(minutes=5)
@@ -35,42 +35,50 @@ class NationalGridSensorEntityDescription(SensorEntityDescription):
 
 SENSORS = (
     NationalGridSensorEntityDescription(
-        key="sellPrice",
+        key="sell_price",
         name="Current Sell Price",
-        unique_id="sellPrice",
+        unique_id="sell_price",
         native_unit_of_measurement="GBP/MWh",
         icon="mdi:currency-gbp",
         state_class=SensorStateClass.MEASUREMENT,
     ),
     NationalGridSensorEntityDescription(
-        key="windData.todayPeak",
+        key="carbon_intensity",
+        name="Current Carbon Intensity",
+        unique_id="carbon_intensity",
+        native_unit_of_measurement="gCO2eq/kWh",
+        icon="mdi:molecule-co2",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="wind_data.today_peak",
         name="Today Wind Peak",
-        unique_id="todayPeak",
+        unique_id="today_peak",
         native_unit_of_measurement="MWh",
         icon="mdi:wind-turbine",
         state_class=SensorStateClass.MEASUREMENT,
     ),
     NationalGridSensorEntityDescription(
-        key="windData.tomorrowPeak",
+        key="wind_data.tomorrow_peak",
         name="Tomorrow Wind Peak",
-        unique_id="tomorrowPeak",
+        unique_id="tomorrow_peak",
         native_unit_of_measurement="MWh",
         icon="mdi:wind-turbine",
         state_class=SensorStateClass.MEASUREMENT,
     ),
     NationalGridSensorEntityDescription(
-        key="windData.todayPeakTime",
+        key="wind_data.today_peak_time",
         name="Today Wind Peak Time",
-        unique_id="todayPeakTime",
+        unique_id="today_peak_time",
         native_unit_of_measurement=None,
         icon="mdi:clock",
         state_class=None,
         device_class=SensorDeviceClass.DATE,
     ),
     NationalGridSensorEntityDescription(
-        key="windData.tomorrowPeakTime",
+        key="wind_data.tomorrow_peak_time",
         name="Tomorrow Wind Peak Time",
-        unique_id="tomorrowPeakTime",
+        unique_id="tomorrow_peak_time",
         native_unit_of_measurement=None,
         icon="mdi:clock",
         state_class=None,
@@ -159,4 +167,4 @@ class Grid(CoordinatorEntity[NationalGridCoordinator], Entity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return self.coordinator.data["gridGeneration"]
+        return self.coordinator.data["grid_generation"]
