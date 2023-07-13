@@ -44,10 +44,10 @@ Then follow the same steps that are using to setup most integrations:
 
 Note that the associated time sensors are important. Updates can lag by a few minutes and are in UTC so its possible that 'today' and 'tomorrow' aren't entirely accurate for a period of time.
 
-### Grid Production Entity
+### Grid Generation Entity
 
-Name - Grid Production\
-ID - national_grid.grid_producton\
+Name - Grid Generation\
+ID - national_grid.grid_generation\
 State - Temporary "Grid Generation"\
 Attributes:
 ```
@@ -66,5 +66,19 @@ netherlands_mwh
 biomass_mwh
 belgium_mwh
 norway_mwh
-gridCollectionTime
+grid_collection_time
+```
+
+### Wind Forecast Entity
+
+Name - Wind Forecast\
+ID - national_grid.wind_forecast\
+State - Temporary "Wind Forecast"\
+Attributes:
+```
+forecast:
+    - start_time: ...
+      generation: ...
+
+...
 ```

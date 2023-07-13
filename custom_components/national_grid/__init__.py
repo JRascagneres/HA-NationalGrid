@@ -77,12 +77,20 @@ class NationalGridWindData(TypedDict):
 
 
 class NationalGridData(TypedDict):
-    """Data field"""
-
     sell_price: float
     carbon_intensity: int
     wind_data: NationalGridWindData
+    wind_forecast: NationalGridWindForecast
     grid_generation: NationalGridGeneration
+
+
+class NationalGridWindForecast(TypedDict):
+    forecast: list[NationalGridWindForecastItem]
+
+
+class NationalGridWindForecastItem(TypedDict):
+    start_time: datetime
+    generation: int
 
 
 class NationalGridCoordinator(DataUpdateCoordinator[NationalGridData]):
@@ -124,6 +132,8 @@ def get_data(
         "%Y-%m-%d %H:%M:%S"
     )
 
+    wind_forecast = get_hourly_wind_forecast(today)
+
     try:
         carbon_intensity = get_carbon_intensity(now_utc_full)
     except Exception as e:  # pylint: disable=broad-except
@@ -163,6 +173,7 @@ def get_data(
         sell_price=current_price,
         carbon_intensity=carbon_intensity,
         wind_data=wind_data,
+        wind_forecast=wind_forecast,
         grid_generation=grid_generation,
     )
 
@@ -176,6 +187,32 @@ def get_data_if_exists(data, key: str):
         return data[key]
 
     return None
+
+
+def get_hourly_wind_forecast(today: str) -> NationalGridWindForecast:
+    url = (
+        "https://data.elexon.co.uk/bmrs/api/v1/forecast/generation/wind/latest?from="
+        + today
+        + "T00:00:00"
+        + "&to="
+        + today
+        + "T23:59:59"
+        + "&format=json"
+    )
+    response = requests.get(url, timeout=10)
+    item_list = json.loads(response.content)["data"]
+
+    wind_forecast = []
+
+    for item in item_list:
+        wind_forecast.append(
+            NationalGridWindForecastItem(
+                start_time=datetime.strptime(item["startTime"], "%Y-%m-%dT%H:%M:%SZ"),
+                generation=int(item["generation"]),
+            )
+        )
+
+    return NationalGridWindForecast(forecast=wind_forecast)
 
 
 def get_current_price(api_key: str, today_utc: str) -> float:

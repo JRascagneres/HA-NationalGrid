@@ -1,3 +1,4 @@
+import json
 import logging
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -13,7 +14,7 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType
-from homeassistant.helpers.entity import DeviceInfo, Entity
+from homeassistant.helpers.entity import DeviceInfo, Entity, EntityDescription
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -28,6 +29,14 @@ _LOGGER = logging.getLogger(__name__)
 @dataclass
 class NationalGridSensorEntityDescription(SensorEntityDescription):
     """Provide a description of sensor"""
+
+    # For backwards compat, allow description to override unique ID key to use
+    unique_id: str | None = None
+
+
+@dataclass
+class NationalGridEntityDescription(EntityDescription):
+    """Provide a description of entity"""
 
     # For backwards compat, allow description to override unique ID key to use
     unique_id: str | None = None
@@ -86,6 +95,15 @@ SENSORS = (
     ),
 )
 
+ENTITIES = (
+    NationalGridEntityDescription(
+        key="grid_generation", name="Grid Generation", unique_id="grid_generation"
+    ),
+    NationalGridEntityDescription(
+        key="wind_forecast", name="Wind Forecast", unique_id="wind_forecast"
+    ),
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -97,7 +115,9 @@ async def async_setup_entry(
         NationalGridSensor(coordinator, description) for description in SENSORS
     )
 
-    async_add_entities([Grid(coordinator)])
+    async_add_entities(
+        NationalGridEntity(coordinator, description) for description in ENTITIES
+    )
 
     return True
 
@@ -146,25 +166,30 @@ class NationalGridSensor(CoordinatorEntity[NationalGridCoordinator], SensorEntit
         return self.entity_description.native_unit_of_measurement
 
 
-class Grid(CoordinatorEntity[NationalGridCoordinator], Entity):
-    """Representation of the Grid"""
+class NationalGridEntity(CoordinatorEntity[NationalGridCoordinator], Entity):
+    entity_description: NationalGridSensorEntityDescription
+    _attr_has_entity_name = True
 
-    _attr_name = "Grid Production"
-    entity_id = DOMAIN + ".grid_producton"
-
-    grid_gen: float
-
-    def __init__(self, coordinator) -> None:
-        """Initialize Grid"""
+    def __init__(self, coordinator, description) -> None:
         super().__init__(coordinator)
-        self.coordinator = coordinator
+        self.entity_description = description
 
-        self.grid_gen = 1
+        self.coordinator = coordinator
+        self.entity_id = DOMAIN + "." + self.entity_description.unique_id
 
     @property
     def state(self) -> str:
-        return "Grid Generation"
+        return self.entity_description.name
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return self.coordinator.data["grid_generation"]
+        keys = self.entity_description.key.split(".")
+
+        value = self.coordinator.data[keys[0]]
+        if len(keys) > 1:
+            for key in keys[1:]:
+                if value is None:
+                    return None
+                value = value[key]
+
+        return value
