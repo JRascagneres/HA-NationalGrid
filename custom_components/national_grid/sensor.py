@@ -97,10 +97,16 @@ SENSORS = (
 
 ENTITIES = (
     NationalGridEntityDescription(
-        key="grid_generation", name="Grid Generation", unique_id="grid_generation"
+        key="grid_generation",
+        name="Grid Generation",
+        unique_id="grid_generation",
+        icon="mdi:transmission-tower",
     ),
     NationalGridEntityDescription(
-        key="wind_forecast", name="Wind Forecast", unique_id="wind_forecast"
+        key="wind_forecast",
+        name="Wind Forecast",
+        unique_id="wind_forecast",
+        icon="mdi:wind-turbine",
     ),
 )
 
@@ -176,6 +182,7 @@ class NationalGridEntity(CoordinatorEntity[NationalGridCoordinator], Entity):
 
         self.coordinator = coordinator
         self.entity_id = DOMAIN + "." + self.entity_description.unique_id
+        self._attr_icon = description.icon
 
     @property
     def state(self) -> str:

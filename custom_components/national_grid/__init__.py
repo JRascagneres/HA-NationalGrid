@@ -126,13 +126,15 @@ def get_data(
     today = dt_util.now().strftime("%Y-%m-%d")
     tomorrow = (dt_util.now() + timedelta(days=1)).strftime("%Y-%m-%d")
 
+    today_full = dt_util.now()
+
     now_utc_full = dt_util.utcnow()
     now_utc_formatted_datetime = now_utc_full.strftime("%Y-%m-%d %H:%M:%S")
     two_hours_ago_utc_formatted_datetime = (now_utc_full - timedelta(hours=2)).strftime(
         "%Y-%m-%d %H:%M:%S"
     )
 
-    wind_forecast = get_hourly_wind_forecast(today)
+    wind_forecast = get_hourly_wind_forecast(today_full)
 
     try:
         carbon_intensity = get_carbon_intensity(now_utc_full)
@@ -189,14 +191,20 @@ def get_data_if_exists(data, key: str):
     return None
 
 
-def get_hourly_wind_forecast(today: str) -> NationalGridWindForecast:
+def get_hourly_wind_forecast(now: datetime) -> NationalGridWindForecast:
+    start_time = now.replace(hour=20, minute=00, second=00, microsecond=00)
+
+    if start_time > now:
+        start_time = start_time - timedelta(days=1)
+
+    start_time_formatted = start_time.strftime("%Y-%m-%dT%H:%M:%S")
+    end_time_formatted = (start_time + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M:%S")
+
     url = (
         "https://data.elexon.co.uk/bmrs/api/v1/forecast/generation/wind/latest?from="
-        + today
-        + "T00:00:00"
+        + start_time_formatted
         + "&to="
-        + today
-        + "T23:59:59"
+        + end_time_formatted
         + "&format=json"
     )
     response = requests.get(url, timeout=10)
