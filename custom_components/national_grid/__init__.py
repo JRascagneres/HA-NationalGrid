@@ -129,10 +129,6 @@ def get_data(
     today_full = dt_util.now()
 
     now_utc_full = dt_util.utcnow()
-    now_utc_formatted_datetime = now_utc_full.strftime("%Y-%m-%d %H:%M:%S")
-    two_hours_ago_utc_formatted_datetime = (now_utc_full - timedelta(hours=2)).strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
 
     wind_forecast = get_hourly_wind_forecast(today_full)
 
@@ -144,7 +140,7 @@ def get_data(
 
     try:
         grid_generation = get_generation(
-            api_key, two_hours_ago_utc_formatted_datetime, now_utc_formatted_datetime
+            now_utc_full,
         )
 
         national_grid_data = get_national_grid_data(today_utc, now_utc_full)
@@ -166,7 +162,7 @@ def get_data(
         current_price = get_data_if_exists(current_data, "sell_price")
 
     try:
-        wind_data = get_wind_data(api_key, today, tomorrow)
+        wind_data = get_wind_data(today, tomorrow)
     except Exception as e:  # pylint: disable=broad-except
         _LOGGER.exception("Failed to obtain wind data")
         wind_data = get_data_if_exists(current_data, "wind_data")
@@ -238,27 +234,24 @@ def get_current_price(api_key: str, today_utc: str) -> float:
     return currentPrice
 
 
-def get_wind_data(api_key: str, today: str, tomorrow: str) -> NationalGridWindData:
-    url = "https://api.bmreports.com/BMRS/WINDFORPK/v1?APIKey=" + api_key
-    items = get_bmrs_data_items(url)
+def get_wind_data(today: str, tomorrow: str) -> NationalGridWindData:
+    url = "https://data.elexon.co.uk/bmrs/api/v1/forecast/generation/wind/peak?format=json"
+    response = requests.get(url, timeout=10)
+    items = json.loads(response.content)["data"]
 
     todayIdx = None
     tomorrowIdx = None
     for idx, item in enumerate(items):
-        if item["dayAndDate"] == today:
+        if item["settlementDate"] == today:
             todayIdx = idx
-        if item["dayAndDate"] == tomorrow:
+        if item["settlementDate"] == tomorrow:
             tomorrowIdx = idx
 
-    today_peak = items[0]["peakMaxGeneration"]
-    tomorrow_peak = items[1]["peakMaxGeneration"]
+    today_peak = items[0]["generation"]
+    tomorrow_peak = items[1]["generation"]
 
-    today_peak_time = datetime.strptime(
-        items[0]["dayAndDate"] + items[0]["startTimeOfHalfHrPeriod"], "%Y-%m-%d%H:%M"
-    )
-    tomorrow_peak_time = datetime.strptime(
-        items[1]["dayAndDate"] + items[1]["startTimeOfHalfHrPeriod"], "%Y-%m-%d%H:%M"
-    )
+    today_peak_time = datetime.strptime(items[0]["startTime"], "%Y-%m-%dT%H:%M:%S%z")
+    tomorrow_peak_time = datetime.strptime(items[1]["startTime"], "%Y-%m-%dT%H:%M:%S%z")
 
     return NationalGridWindData(
         today_peak=today_peak,
@@ -299,48 +292,85 @@ def get_carbon_intensity(now_utc_full: datetime) -> int:
     return None
 
 
-def get_generation(
-    api_key: str, from_datetime: str, to_datetime: str
-) -> NationalGridGeneration:
+def get_generation(utc_now: datetime) -> NationalGridGeneration:
+    utc_now_formatted = utc_now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    ten_minutes_ago = (utc_now - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
     url = (
-        "https://api.bmreports.com/BMRS/FUELINST/v1?APIKey="
-        + api_key
-        + "&FromDateTime="
-        + from_datetime
-        + "&ToDateTime="
-        + to_datetime
+        "https://data.elexon.co.uk/bmrs/api/v1/datasets/FUELINST?publishDateTimeFrom="
+        + ten_minutes_ago
+        + "&publishDateTimeTo="
+        + utc_now_formatted
+        + "&format=json"
     )
-    latestItem = get_bmrs_data_latest(url)
-    grid_collection_time = datetime.strptime(
-        latestItem["publishingPeriodCommencingTime"], "%Y-%m-%d %H:%M:%S"
-    )
-    grid_collection_time = grid_collection_time.replace(tzinfo=tz.tzutc())
-    grid_collection_time = grid_collection_time.astimezone(tz=dt_util.now().tzinfo)
+    response = requests.get(url, timeout=10)
+    items = json.loads(response.content)["data"]
 
-    url = "https://api.bmreports.com/BMRS/INTERFUELHH/v1?APIKey=" + api_key
-    latest_interconnectors_item = get_bmrs_data_latest(url)
+    latest_generation_time = items[0]["startTime"]
+    latest_publish_time = items[0]["publishTime"]
 
-    return NationalGridGeneration(
-        gas_mwh=int(latestItem["ccgt"]) + int(latestItem["ocgt"]),
-        oil_mwh=int(latestItem["oil"]),
-        coal_mwh=int(latestItem["coal"]),
-        biomass_mwh=int(latestItem["biomass"]),
-        nuclear_mwh=int(latestItem["nuclear"]),
-        wind_mwh=int(latestItem["wind"]),
+    for item in items:
+        if item["startTime"] > latest_generation_time:
+            latest_generation_time = item["startTime"]
+            latest_publish_time = item["publishTime"]
+
+    # Initiate class where we need to
+    national_grid_generation = NationalGridGeneration(
+        gas_mwh=0,
+        oil_mwh=0,
+        coal_mwh=0,
+        biomass_mwh=0,
+        nuclear_mwh=0,
+        wind_mwh=0,
         solar_mwh=0,
-        pumped_storage_mwh=int(latestItem["ps"]),
-        hydro_mwh=int(latestItem["npshyd"]),
-        other_mwh=int(latestItem["other"]),
-        france_mwh=int(latest_interconnectors_item["intfrGeneration"])
-        + int(latest_interconnectors_item["intelecGeneration"])
-        + int(latest_interconnectors_item["intifa2Generation"]),
-        ireland_mwh=int(latest_interconnectors_item["intirlGeneration"])
-        + int(latest_interconnectors_item["intewGeneration"]),
-        netherlands_mwh=int(latest_interconnectors_item["intnedGeneration"]),
-        belgium_mwh=int(latest_interconnectors_item["intnemGeneration"]),
-        norway_mwh=int(latest_interconnectors_item["intnslGeneration"]),
-        grid_collection_time=grid_collection_time,
+        pumped_storage_mwh=0,
+        hydro_mwh=0,
+        other_mwh=0,
+        france_mwh=0,
+        ireland_mwh=0,
+        netherlands_mwh=0,
+        belgium_mwh=0,
+        norway_mwh=0,
+        grid_collection_time=latest_publish_time,
     )
+
+    check_count = 0
+
+    for item in items:
+        if item["startTime"] == latest_generation_time:
+            generation = item["generation"]
+
+            fuelType = item["fuelType"]
+            if fuelType == "CCGT" or fuelType == "OCGT":
+                national_grid_generation["gas_mwh"] += generation
+            elif fuelType == "OIL":
+                national_grid_generation["oil_mwh"] = generation
+            elif fuelType == "COAL":
+                national_grid_generation["coal_mwh"] = generation
+            elif fuelType == "BIOMASS":
+                national_grid_generation["biomass_mwh"] = generation
+            elif fuelType == "NUCLEAR":
+                national_grid_generation["nuclear_mwh"] = generation
+            elif fuelType == "WIND":
+                national_grid_generation["wind_mwh"] = generation
+            elif fuelType == "PS":
+                national_grid_generation["pumped_storage_mwh"] = generation
+            elif fuelType == "NPSHYD":
+                national_grid_generation["hydro_mwh"] = generation
+            elif fuelType == "OTHER":
+                national_grid_generation["other_mwh"] = generation
+            elif fuelType == "INTFR" or fuelType == "INTELEC" or fuelType == "INTIFA2":
+                national_grid_generation["france_mwh"] += generation
+            elif fuelType == "INTIRL" or fuelType == "INTEW":
+                national_grid_generation["ireland_mwh"] += generation
+            elif fuelType == "INTNED":
+                national_grid_generation["netherlands_mwh"] = generation
+            elif fuelType == "INTNEM":
+                national_grid_generation["belgium_mwh"] = generation
+            elif fuelType == "INTNSL":
+                national_grid_generation["norway_mwh"] = generation
+
+    return national_grid_generation
 
 
 def get_bmrs_data(url: str) -> OrderedDict[str, Any]:
