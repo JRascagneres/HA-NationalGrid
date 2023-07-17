@@ -95,6 +95,129 @@ SENSORS = (
     ),
 )
 
+SENSORS_GENERATION = (
+    NationalGridSensorEntityDescription(
+        key="grid_generation.gas_mwh",
+        name="Grid Generation Gas MWh",
+        unique_id="grid_generation_gas_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:fire",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.oil_mwh",
+        name="Grid Generation Oil MWh",
+        unique_id="grid_generation_oil_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:oil",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.coal_mwh",
+        name="Grid Generation Coal MWh",
+        unique_id="grid_generation_coal_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:fire",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.biomass_mwh",
+        name="Grid Generation Biomass MWh",
+        unique_id="grid_generation_biomass_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:leaf",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.nuclear_mwh",
+        name="Grid Generation Nuclear MWh",
+        unique_id="grid_generation_nuclear_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:turbine",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.wind_mwh",
+        name="Grid Generation Wind MWh",
+        unique_id="grid_generation_wind_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:wind-turbine",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.solar_mwh",
+        name="Grid Generation Solar MWh",
+        unique_id="grid_generation_solar_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:solar-power-variant",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.pumped_storage_mwh",
+        name="Grid Generation Pumped Storage MWh",
+        unique_id="grid_generation_pumped_storage_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:pump",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.hydro_mwh",
+        name="Grid Generation Hydro MWh",
+        unique_id="grid_generation_hydro_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:hydro-power",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.other_mwh",
+        name="Grid Generation Other MWh",
+        unique_id="grid_generation_other_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:help",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.france_mwh",
+        name="Grid Generation France MWh",
+        unique_id="grid_generation_france_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:transmission-tower",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.ireland_mwh",
+        name="Grid Generation Ireland MWh",
+        unique_id="grid_generation_ireland_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:transmission-tower",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.netherlands_mwh",
+        name="Grid Generation Netherlands MWh",
+        unique_id="grid_generation_netherlands_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:transmission-tower",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.belgium_mwh",
+        name="Grid Generation Belgium MWh",
+        unique_id="grid_generation_belgium_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:transmission-tower",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.norway_mwh",
+        name="Grid Generation Norway MWh",
+        unique_id="grid_generation_norway_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:transmission-tower",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+)
+
 ENTITIES = (
     NationalGridEntityDescription(
         key="grid_generation",
@@ -119,6 +242,11 @@ async def async_setup_entry(
 
     async_add_entities(
         NationalGridSensor(coordinator, description) for description in SENSORS
+    )
+
+    async_add_entities(
+        NationalGridSensor(coordinator, description)
+        for description in SENSORS_GENERATION
     )
 
     async_add_entities(

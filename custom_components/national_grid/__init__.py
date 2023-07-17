@@ -54,6 +54,7 @@ class NationalGridGeneration(TypedDict):
     gas_mwh: int  # ccgt + ocgt
     oil_mwh: int  # oil
     coal_mwh: int  # coal
+    biomass_mwh: int  # biomass
     nuclear_mwh: int  # nuclear
     wind_mwh: int  # wind
     solar_mwh: int  # solar
@@ -63,7 +64,6 @@ class NationalGridGeneration(TypedDict):
     france_mwh: int  # intfr ( IFA ) + intelec ( ElecLink ) + intifa2 ( IFA2 )
     ireland_mwh: int  # intirl ( Moyle ) + intew ( East-West )
     netherlands_mwh: int  # intned ( Brit Ned )
-    biomass_mwh: int  # biomass
     belgium_mwh: int  # intnem ( Nemo )
     norway_mwh: int  # intnsl ( North Sea Link )
     grid_collection_time: datetime
@@ -324,8 +324,10 @@ def get_generation(
         gas_mwh=int(latestItem["ccgt"]) + int(latestItem["ocgt"]),
         oil_mwh=int(latestItem["oil"]),
         coal_mwh=int(latestItem["coal"]),
+        biomass_mwh=int(latestItem["biomass"]),
         nuclear_mwh=int(latestItem["nuclear"]),
         wind_mwh=int(latestItem["wind"]),
+        solar_mwh=0,
         pumped_storage_mwh=int(latestItem["ps"]),
         hydro_mwh=int(latestItem["npshyd"]),
         other_mwh=int(latestItem["other"]),
@@ -335,10 +337,8 @@ def get_generation(
         ireland_mwh=int(latest_interconnectors_item["intirlGeneration"])
         + int(latest_interconnectors_item["intewGeneration"]),
         netherlands_mwh=int(latest_interconnectors_item["intnedGeneration"]),
-        biomass_mwh=int(latestItem["biomass"]),
         belgium_mwh=int(latest_interconnectors_item["intnemGeneration"]),
         norway_mwh=int(latest_interconnectors_item["intnslGeneration"]),
-        solar_mwh=0,
         grid_collection_time=grid_collection_time,
     )
 
