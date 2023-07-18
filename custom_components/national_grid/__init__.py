@@ -211,7 +211,7 @@ def get_hourly_wind_forecast(now: datetime) -> NationalGridWindForecast:
     for item in item_list:
         wind_forecast.append(
             NationalGridWindForecastItem(
-                start_time=datetime.strptime(item["startTime"], "%Y-%m-%dT%H:%M:%SZ"),
+                start_time=datetime.strptime(item["startTime"], "%Y-%m-%dT%H:%M:%S%z"),
                 generation=int(item["generation"]),
             )
         )
@@ -266,7 +266,7 @@ def get_national_grid_data(today_utc: str, now_utc: datetime) -> dict[str, Any]:
     settlement_period = today_minutes // 30
 
     url = "https://data.nationalgrideso.com/backend/dataset/7a12172a-939c-404c-b581-a6128b74f588/resource/177f6fa4-ae49-4182-81ea-0c6b35f26ca6/download/demanddataupdate.csv"
-    response = requests.get(url, timeout=10)
+    response = requests.get(url, timeout=20)
     response_data = response.content.decode("utf-8")
     reader = csv.DictReader(io.StringIO(response_data))
     for row in reader:
