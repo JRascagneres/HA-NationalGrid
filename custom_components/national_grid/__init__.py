@@ -50,6 +50,10 @@ class InvalidAuthError(NationalGridError):
     """Invalid auth"""
 
 
+class UnexpectedDataError(NationalGridError):
+    """Unexpected data"""
+
+
 class NationalGridGeneration(TypedDict):
     gas_mwh: int  # ccgt + ocgt
     oil_mwh: int  # oil
@@ -130,42 +134,30 @@ def get_data(
 
     now_utc_full = dt_util.utcnow()
 
-    wind_forecast = get_hourly_wind_forecast(today_full)
+    wind_forecast = obtain_data_with_fallback(
+        current_data, "wind_forecast", get_hourly_wind_forecast, now_utc_full
+    )
 
-    try:
-        carbon_intensity = get_carbon_intensity(now_utc_full)
-    except Exception as e:  # pylint: disable=broad-except
-        _LOGGER.exception("Failed to obtain carbon itensity data")
-        carbon_intensity = get_data_if_exists(current_data, "carbon_intensity")
+    carbon_intensity = obtain_data_with_fallback(
+        current_data, "carbon_intensity", get_carbon_intensity, now_utc_full
+    )
 
-    try:
-        grid_generation = get_generation(
-            now_utc_full,
-        )
+    grid_generation = obtain_data_with_fallback(
+        current_data,
+        "grid_generation",
+        get_generation_combined,
+        api_key,
+        now_utc_full,
+        today_utc,
+    )
 
-        national_grid_data = get_national_grid_data(today_utc, now_utc_full)
-        if national_grid_data is not None:
-            grid_generation["wind_mwh"] += int(
-                national_grid_data["EMBEDDED_WIND_GENERATION"]
-            )
-            grid_generation["solar_mwh"] = int(
-                national_grid_data["EMBEDDED_SOLAR_GENERATION"]
-            )
-    except Exception as e:  # pylint: disable=broad-except
-        _LOGGER.exception("Failed to obtain grid generation data")
-        grid_generation = get_data_if_exists(current_data, "grid_generation")
+    current_price = obtain_data_with_fallback(
+        current_data, "sell_price", get_current_price, api_key, today_utc
+    )
 
-    try:
-        current_price = get_current_price(api_key, today_utc)
-    except Exception as e:  # pylint: disable=broad-except
-        _LOGGER.exception("Failed to obtain current price")
-        current_price = get_data_if_exists(current_data, "sell_price")
-
-    try:
-        wind_data = get_wind_data(today, tomorrow)
-    except Exception as e:  # pylint: disable=broad-except
-        _LOGGER.exception("Failed to obtain wind data")
-        wind_data = get_data_if_exists(current_data, "wind_data")
+    wind_data = obtain_data_with_fallback(
+        current_data, "wind_data", get_wind_data, today, tomorrow
+    )
 
     return NationalGridData(
         sell_price=current_price,
@@ -187,14 +179,16 @@ def get_data_if_exists(data, key: str):
     return None
 
 
-def get_hourly_wind_forecast(now: datetime) -> NationalGridWindForecast:
-    start_time = now.replace(hour=20, minute=00, second=00, microsecond=00)
-
-    if start_time > now:
-        start_time = start_time - timedelta(days=1)
-
-    start_time_formatted = start_time.strftime("%Y-%m-%dT%H:%M:%S")
-    end_time_formatted = (start_time + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M:%S")
+def get_hourly_wind_forecast(now_utc: datetime) -> NationalGridWindForecast:
+    # Get forecast from now to today + 2 days at 8pm
+    start_time_formatted = now_utc.replace(
+        minute=00, second=00, microsecond=00
+    ).strftime("%Y-%m-%dT%H:%M:%S")
+    end_time_formatted = (
+        (now_utc + timedelta(days=2))
+        .replace(hour=20, minute=00, second=00, microsecond=00)
+        .strftime("%Y-%m-%dT%H:%M:%S")
+    )
 
     url = (
         "https://data.elexon.co.uk/bmrs/api/v1/forecast/generation/wind/latest?from="
@@ -263,7 +257,7 @@ def get_wind_data(today: str, tomorrow: str) -> NationalGridWindData:
 
 def get_national_grid_data(today_utc: str, now_utc: datetime) -> dict[str, Any]:
     today_minutes = now_utc.hour * 60 + now_utc.minute
-    settlement_period = today_minutes // 30
+    settlement_period = (today_minutes // 30) + 1
 
     url = "https://data.nationalgrideso.com/backend/dataset/7a12172a-939c-404c-b581-a6128b74f588/resource/177f6fa4-ae49-4182-81ea-0c6b35f26ca6/download/demanddataupdate.csv"
     response = requests.get(url, timeout=20)
@@ -305,6 +299,9 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
     )
     response = requests.get(url, timeout=10)
     items = json.loads(response.content)["data"]
+
+    if len(items) == 0:
+        raise UnexpectedDataError(url)
 
     latest_generation_time = items[0]["startTime"]
     latest_publish_time = items[0]["publishTime"]
@@ -373,6 +370,77 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
     return national_grid_generation
 
 
+def get_generation_old(
+    api_key: str, from_datetime: str, to_datetime: str
+) -> NationalGridGeneration:
+    url = (
+        "https://api.bmreports.com/BMRS/FUELINST/v1?APIKey="
+        + api_key
+        + "&FromDateTime="
+        + from_datetime
+        + "&ToDateTime="
+        + to_datetime
+    )
+
+    _LOGGER.info(url)
+
+    latestItem = get_bmrs_data_latest(url)
+    grid_collection_time = datetime.strptime(
+        latestItem["publishingPeriodCommencingTime"], "%Y-%m-%d %H:%M:%S"
+    )
+    grid_collection_time = grid_collection_time.replace(tzinfo=tz.tzutc())
+    grid_collection_time = grid_collection_time.astimezone(tz=dt_util.now().tzinfo)
+
+    url = "https://api.bmreports.com/BMRS/INTERFUELHH/v1?APIKey=" + api_key
+    latest_interconnectors_item = get_bmrs_data_latest(url)
+
+    return NationalGridGeneration(
+        gas_mwh=int(latestItem["ccgt"]) + int(latestItem["ocgt"]),
+        oil_mwh=int(latestItem["oil"]),
+        coal_mwh=int(latestItem["coal"]),
+        biomass_mwh=int(latestItem["biomass"]),
+        nuclear_mwh=int(latestItem["nuclear"]),
+        wind_mwh=int(latestItem["wind"]),
+        solar_mwh=0,
+        pumped_storage_mwh=int(latestItem["ps"]),
+        hydro_mwh=int(latestItem["npshyd"]),
+        other_mwh=int(latestItem["other"]),
+        france_mwh=int(latest_interconnectors_item["intfrGeneration"])
+        + int(latest_interconnectors_item["intelecGeneration"])
+        + int(latest_interconnectors_item["intifa2Generation"]),
+        ireland_mwh=int(latest_interconnectors_item["intirlGeneration"])
+        + int(latest_interconnectors_item["intewGeneration"]),
+        netherlands_mwh=int(latest_interconnectors_item["intnedGeneration"]),
+        belgium_mwh=int(latest_interconnectors_item["intnemGeneration"]),
+        norway_mwh=int(latest_interconnectors_item["intnslGeneration"]),
+        grid_collection_time=grid_collection_time,
+    )
+
+
+def get_generation_combined(api_key: str, now_utc_full: datetime, today_utc: str):
+    # grid_generation = get_generation(
+    #     now_utc_full,
+    # )
+
+    now_utc_formatted_datetime = now_utc_full.strftime("%Y-%m-%d %H:%M:%S")
+    two_hours_ago_utc_formatted_datetime = (now_utc_full - timedelta(hours=2)).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+
+    grid_generation = get_generation_old(
+        api_key, two_hours_ago_utc_formatted_datetime, now_utc_formatted_datetime
+    )
+
+    national_grid_data = get_national_grid_data(today_utc, now_utc_full)
+    if national_grid_data is None:
+        return UnexpectedDataError("National Grid ESO data None")
+
+    grid_generation["wind_mwh"] += int(national_grid_data["EMBEDDED_WIND_GENERATION"])
+    grid_generation["solar_mwh"] = int(national_grid_data["EMBEDDED_SOLAR_GENERATION"])
+
+    return grid_generation
+
+
 def get_bmrs_data(url: str) -> OrderedDict[str, Any]:
     response = requests.get(url, timeout=10)
     data = xmltodict.parse(response.content)
@@ -398,3 +466,21 @@ def get_bmrs_data_latest(url: str) -> OrderedDict[str, Any]:
     latestResponse = items[len(items) - 1]
 
     return latestResponse
+
+
+def obtain_data_with_fallback(current_data, key, func, *args):
+    try:
+        data = func(*args)
+        return data
+    except UnexpectedDataError as e:
+        argument_str = ""
+        if len(e.args) != 0:
+            argument_str = e.args[0]
+        _LOGGER.error("Data unexpected " + argument_str)
+    except requests.exceptions.ReadTimeoutError as e:
+        _LOGGER.exception("Read timeout error")
+    except Exception as e:  # pylint: disable=broad-except
+        _LOGGER.exception("Failed to obtain data")
+
+    data = get_data_if_exists(current_data, key)
+    return data
