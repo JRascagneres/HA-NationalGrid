@@ -248,6 +248,9 @@ def get_carbon_intensity(now_utc_full: datetime) -> int:
     )
     response = requests.get(url, timeout=10)
     data = json.loads(response.content)
+    if "data" not in data:
+        raise UnexpectedDataError(url)
+
     for item in reversed(data["data"]):
         if item["intensity"]["actual"] is not None:
             return int(item["intensity"]["actual"])
@@ -437,16 +440,17 @@ def get_bmrs_data_latest(url: str) -> OrderedDict[str, Any]:
 def obtain_data_with_fallback(current_data, key, func, *args):
     try:
         data = func(*args)
-        return data
     except UnexpectedDataError as e:
         argument_str = ""
         if len(e.args) != 0:
             argument_str = e.args[0]
+        data = get_data_if_exists(current_data, key)
         _LOGGER.error("Data unexpected " + argument_str)
-    except requests.exceptions.ReadTimeoutError as e:
+    except requests.exceptions.ReadTimeout as e:
+        data = get_data_if_exists(current_data, key)
         _LOGGER.exception("Read timeout error")
     except Exception as e:  # pylint: disable=broad-except
+        data = get_data_if_exists(current_data, key)
         _LOGGER.exception("Failed to obtain data")
-
-    data = get_data_if_exists(current_data, key)
-    return data
+    finally:
+        return data  # pylint: disable=lost-exception

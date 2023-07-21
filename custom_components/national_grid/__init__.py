@@ -4,7 +4,7 @@ import logging
 
 from dateutil import tz
 
-from config.custom_components.national_grid.coordinators.national_grid import (
+from .coordinators.national_grid import (
     NationalGridCoordinator,
 )
 from homeassistant.config_entries import ConfigEntry
