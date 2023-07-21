@@ -4,10 +4,10 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.const import CONF_API_KEY
 
-from . import InvalidAuthError, get_data
-from .const import DOMAIN
+from .const import API_KEY, DOMAIN
+from .coordinators.national_grid import get_data
+from .errors import InvalidAuthError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class NationalGridConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input):
         """Handle initial step"""
-        data_schema = vol.Schema({vol.Required(CONF_API_KEY): str})
+        data_schema = vol.Schema({vol.Required(API_KEY): str})
 
         if user_input is None:
             return self.async_show_form(
@@ -25,7 +25,7 @@ class NationalGridConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data_schema=data_schema,
             )
 
-        data = {CONF_API_KEY: user_input[CONF_API_KEY]}
+        data = {API_KEY: user_input[API_KEY]}
 
         return await self.validate_and_create("user", data, data_schema)
 

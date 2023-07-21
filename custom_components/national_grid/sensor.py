@@ -1,8 +1,6 @@
-import json
 import logging
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
-from decimal import Decimal
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -20,7 +18,7 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import NationalGridCoordinator
-from .const import DOMAIN
+from .const import DATA_CLIENT, DOMAIN
 
 SCAN_INTERVAL = timedelta(minutes=5)
 _LOGGER = logging.getLogger(__name__)
@@ -238,7 +236,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Setup the National Grid sensor"""
-    coordinator: NationalGridCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: NationalGridCoordinator = hass.data[DOMAIN][DATA_CLIENT]
 
     async_add_entities(
         NationalGridSensor(coordinator, description) for description in SENSORS
