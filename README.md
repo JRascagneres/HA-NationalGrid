@@ -95,6 +95,26 @@ Attributes:
 forecast:
     - start_time: ...
       generation: ...
-
 ...
 ```
+
+## Uses / Examples
+This section outlines some graphs / views I have personally created with the data provided by the integration.
+
+![Example 1 screenshot](docs/assets/example1.png)
+![Example 2 screenshot](docs/assets/example2.png)
+![Example 3 screenshot](docs/assets/example3.png)
+![Example 4 screenshot](docs/assets/example4.png)
+
+## Data Sources
+
+### BMRS - Balancing Mechanism Reporting Service
+An Elexon developed API responsible for reporting power generation, interconnectors, pricing and wind forecasting.\
+Data is provided largely in an XML format but their newer API offers data in JSON too, this integration is moving slowly to the new API, however, the new API is in beta so some endpoint are not yet suitable.
+
+### Carbon Itensity API
+A National Grid ESO API developed in partner ship with the University of Oxford is responsible for reporting the carbon intensity of power generation in the UK in grams of carbon dioxide per kilowatt hour.\
+Data is provided in JSON format.
+
+### National Grid ESO API
+A National Grid ESO API responsible for estimating power generation from embedded solar and wind. This is required as BMRS only reports main grid generation, embedded generation is not counted. Embedded generation being the generation connected to local distribution networks rather than the national transmission network.

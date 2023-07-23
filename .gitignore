@@ -8,5 +8,9 @@
 !custom_components/national_grid/coordinators
 !custom_components/national_grid/coordinators/*
 !custom_components/
+!docs
+!docs/*
+!docs/assets
+!docs/assets/*
 !README.md
 !hacs.json
