@@ -18,51 +18,15 @@ from homeassistant.util import dt as dt_util
 
 from ..const import API_KEY, DOMAIN
 from ..errors import InvalidAuthError, UnexpectedDataError
+from ..models import (
+    NationalGridData,
+    NationalGridGeneration,
+    NationalGridWindData,
+    NationalGridWindForecast,
+    NationalGridWindForecastItem,
+)
 
 _LOGGER = logging.getLogger(__name__)
-
-
-class NationalGridGeneration(TypedDict):
-    gas_mwh: int  # ccgt + ocgt
-    oil_mwh: int  # oil
-    coal_mwh: int  # coal
-    biomass_mwh: int  # biomass
-    nuclear_mwh: int  # nuclear
-    wind_mwh: int  # wind
-    solar_mwh: int  # solar
-    pumped_storage_mwh: int  # ps - pumped storage
-    hydro_mwh: int  # npshyd - non pumped storage hydro plant
-    other_mwh: int  # other - undefined
-    france_mwh: int  # intfr ( IFA ) + intelec ( ElecLink ) + intifa2 ( IFA2 )
-    ireland_mwh: int  # intirl ( Moyle ) + intew ( East-West )
-    netherlands_mwh: int  # intned ( Brit Ned )
-    belgium_mwh: int  # intnem ( Nemo )
-    norway_mwh: int  # intnsl ( North Sea Link )
-    grid_collection_time: datetime
-
-
-class NationalGridWindData(TypedDict):
-    today_peak: float
-    tomorrow_peak: float
-    today_peak_time: datetime
-    tomorrow_peak_time: datetime
-
-
-class NationalGridWindForecastItem(TypedDict):
-    start_time: datetime
-    generation: int
-
-
-class NationalGridWindForecast(TypedDict):
-    forecast: list[NationalGridWindForecastItem]
-
-
-class NationalGridData(TypedDict):
-    sell_price: float
-    carbon_intensity: int
-    wind_data: NationalGridWindData
-    wind_forecast: NationalGridWindForecast
-    grid_generation: NationalGridGeneration
 
 
 class NationalGridCoordinator(DataUpdateCoordinator[NationalGridData]):
@@ -141,7 +105,7 @@ def get_data_if_exists(data, key: str):
         _LOGGER.error("Previous data is None, returning None")
         return None
     if key in data:
-        _LOGGER.error("Returning previous data")
+        _LOGGER.warning("Returning previous data")
         return data[key]
 
     return None
@@ -422,6 +386,13 @@ def get_bmrs_data(url: str) -> OrderedDict[str, Any]:
 
 def get_bmrs_data_items(url: str) -> OrderedDict[str, Any]:
     data = get_bmrs_data(url)
+    if (
+        "response" not in data
+        or "responseBody" not in data["response"]
+        or "responseList" not in data["response"]["responseBody"]
+    ):
+        raise UnexpectedDataError(url)
+
     responseList = data["response"]["responseBody"]["responseList"]
     items = responseList["item"]
     if type(items) is not list:
@@ -439,18 +410,19 @@ def get_bmrs_data_latest(url: str) -> OrderedDict[str, Any]:
 
 def obtain_data_with_fallback(current_data, key, func, *args):
     try:
-        data = func(*args)
+        return func(*args)
     except UnexpectedDataError as e:
         argument_str = ""
         if len(e.args) != 0:
             argument_str = e.args[0]
-        data = get_data_if_exists(current_data, key)
-        _LOGGER.error("Data unexpected " + argument_str)
+        _LOGGER.warning("Data unexpected " + argument_str)
+        return get_data_if_exists(current_data, key)
     except requests.exceptions.ReadTimeout as e:
-        data = get_data_if_exists(current_data, key)
-        _LOGGER.exception("Read timeout error")
+        _LOGGER.warning("Read timeout error")
+        return get_data_if_exists(current_data, key)
+    except requests.exceptions.ConnectionError as e:
+        _LOGGER.warning("Request connection error")
+        return get_data_if_exists(current_data, key)
     except Exception as e:  # pylint: disable=broad-except
-        data = get_data_if_exists(current_data, key)
         _LOGGER.exception("Failed to obtain data")
-    finally:
-        return data  # pylint: disable=lost-exception
+        return get_data_if_exists(current_data, key)
