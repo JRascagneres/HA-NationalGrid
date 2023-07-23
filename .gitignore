@@ -1,6 +1,10 @@
 *
 .pyc
 !.gitignore
+!.github
+!.github/*
+!.github/workflows
+!.github/workflows/*
 !custom_components/national_grid
 !custom_components/national_grid/*
 !custom_components/national_grid/translations
