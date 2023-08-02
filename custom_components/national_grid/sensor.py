@@ -38,6 +38,7 @@ class NationalGridEntityDescription(EntityDescription):
 
     # For backwards compat, allow description to override unique ID key to use
     unique_id: str | None = None
+    state_key: str | None = None
 
 
 SENSORS = (
@@ -228,6 +229,7 @@ ENTITIES = (
         name="Wind Forecast",
         unique_id="wind_forecast",
         icon="mdi:wind-turbine",
+        state_key="wind_forecast.forecast.0.generation",
     ),
 )
 
@@ -312,7 +314,20 @@ class NationalGridEntity(CoordinatorEntity[NationalGridCoordinator], Entity):
 
     @property
     def state(self) -> str:
-        return self.entity_description.name
+        if not self.entity_description.state_key:
+            return self.entity_description.name
+
+        keys = self.entity_description.state_key.split(".")
+        value = self.coordinator.data[keys[0]]
+        if len(keys) > 1:
+            for key in keys[1:]:
+                if value is None:
+                    return None
+                if key.isnumeric():
+                    value = value[int(key)]
+                    continue
+                value = value[key]
+        return value
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

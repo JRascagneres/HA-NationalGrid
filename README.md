@@ -89,7 +89,7 @@ grid_collection_time
 
 Name - Wind Forecast\
 ID - national_grid.wind_forecast\
-State - Temporary "Wind Forecast"\
+State - Current hour forecast\
 Attributes:
 ```
 forecast:
