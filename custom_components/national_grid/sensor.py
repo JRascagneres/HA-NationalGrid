@@ -30,15 +30,7 @@ class NationalGridSensorEntityDescription(SensorEntityDescription):
 
     # For backwards compat, allow description to override unique ID key to use
     unique_id: str | None = None
-
-
-@dataclass
-class NationalGridEntityDescription(EntityDescription):
-    """Provide a description of entity"""
-
-    # For backwards compat, allow description to override unique ID key to use
-    unique_id: str | None = None
-    state_key: str | None = None
+    extra_attributes_key: str | None = None
 
 
 SENSORS = (
@@ -215,21 +207,21 @@ SENSORS_GENERATION = (
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.MEASUREMENT,
     ),
-)
-
-ENTITIES = (
-    NationalGridEntityDescription(
-        key="grid_generation",
+    NationalGridSensorEntityDescription(
+        key="wind_forecast.forecast.0.generation",
+        name="Wind Forecast",
+        unique_id="wind_forecast",
+        native_unit_of_measurement="MWh",
+        icon="mdi:wind-turbine",
+        state_class=SensorStateClass.MEASUREMENT,
+        extra_attributes_key="wind_forecast",
+    ),
+    NationalGridSensorEntityDescription(
+        key=None,
         name="Grid Generation",
         unique_id="grid_generation",
         icon="mdi:transmission-tower",
-    ),
-    NationalGridEntityDescription(
-        key="wind_forecast",
-        name="Wind Forecast",
-        unique_id="wind_forecast",
-        icon="mdi:wind-turbine",
-        state_key="wind_forecast.forecast.0.generation",
+        extra_attributes_key="grid_generation",
     ),
 )
 
@@ -247,10 +239,6 @@ async def async_setup_entry(
     async_add_entities(
         NationalGridSensor(coordinator, description)
         for description in SENSORS_GENERATION
-    )
-
-    async_add_entities(
-        NationalGridEntity(coordinator, description) for description in ENTITIES
     )
 
     return True
@@ -284,40 +272,11 @@ class NationalGridSensor(CoordinatorEntity[NationalGridCoordinator], SensorEntit
 
     @property
     def native_value(self) -> float | datetime | None:
-        keys = self.entity_description.key.split(".")
-
-        value = self.coordinator.data[keys[0]]
-        if len(keys) > 1:
-            for key in keys[1:]:
-                if value is None:
-                    return None
-                value = value[key]
-
-        return value
-
-    @property
-    def native_unit_of_measurement(self) -> str | None:
-        return self.entity_description.native_unit_of_measurement
-
-
-class NationalGridEntity(CoordinatorEntity[NationalGridCoordinator], Entity):
-    entity_description: NationalGridSensorEntityDescription
-    _attr_has_entity_name = True
-
-    def __init__(self, coordinator, description) -> None:
-        super().__init__(coordinator)
-        self.entity_description = description
-
-        self.coordinator = coordinator
-        self.entity_id = DOMAIN + "." + self.entity_description.unique_id
-        self._attr_icon = description.icon
-
-    @property
-    def state(self) -> str:
-        if not self.entity_description.state_key:
+        if not self.entity_description.key:
             return self.entity_description.name
 
-        keys = self.entity_description.state_key.split(".")
+        keys = self.entity_description.key.split(".")
+
         value = self.coordinator.data[keys[0]]
         if len(keys) > 1:
             for key in keys[1:]:
@@ -327,17 +286,28 @@ class NationalGridEntity(CoordinatorEntity[NationalGridCoordinator], Entity):
                     value = value[int(key)]
                     continue
                 value = value[key]
+
         return value
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        keys = self.entity_description.key.split(".")
+        if not self.entity_description.extra_attributes_key:
+            return None
+
+        keys = self.entity_description.extra_attributes_key.split(".")
 
         value = self.coordinator.data[keys[0]]
         if len(keys) > 1:
             for key in keys[1:]:
                 if value is None:
                     return None
+                if key.isnumeric():
+                    value = value[int(key)]
+                    continue
                 value = value[key]
 
         return value
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        return self.entity_description.native_unit_of_measurement
