@@ -370,6 +370,9 @@ def get_generation_combined(api_key: str, now_utc_full: datetime, today_utc: str
 
     grid_generation["wind_mwh"] += int(national_grid_data["EMBEDDED_WIND_GENERATION"])
     grid_generation["solar_mwh"] = int(national_grid_data["EMBEDDED_SOLAR_GENERATION"])
+    grid_generation["pumped_storage_mwh"] += -int(
+        national_grid_data["PUMP_STORAGE_PUMPING"]
+    )
 
     return grid_generation
 
