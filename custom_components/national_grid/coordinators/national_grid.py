@@ -351,18 +351,18 @@ def get_generation_old(
 
 
 def get_generation_combined(api_key: str, now_utc_full: datetime, today_utc: str):
-    # grid_generation = get_generation(
-    #     now_utc_full,
-    # )
+    grid_generation = get_generation(
+        now_utc_full,
+    )
 
     now_utc_formatted_datetime = now_utc_full.strftime("%Y-%m-%d %H:%M:%S")
     two_hours_ago_utc_formatted_datetime = (now_utc_full - timedelta(hours=2)).strftime(
         "%Y-%m-%d %H:%M:%S"
     )
 
-    grid_generation = get_generation_old(
-        api_key, two_hours_ago_utc_formatted_datetime, now_utc_formatted_datetime
-    )
+    # grid_generation = get_generation_old(
+    #     api_key, two_hours_ago_utc_formatted_datetime, now_utc_formatted_datetime
+    # )
 
     national_grid_data = get_national_grid_data(today_utc, now_utc_full)
     if national_grid_data is None:
@@ -370,9 +370,9 @@ def get_generation_combined(api_key: str, now_utc_full: datetime, today_utc: str
 
     grid_generation["wind_mwh"] += int(national_grid_data["EMBEDDED_WIND_GENERATION"])
     grid_generation["solar_mwh"] = int(national_grid_data["EMBEDDED_SOLAR_GENERATION"])
-    grid_generation["pumped_storage_mwh"] += -int(
-        national_grid_data["PUMP_STORAGE_PUMPING"]
-    )
+    # grid_generation["pumped_storage_mwh"] += -int(
+    #     national_grid_data["PUMP_STORAGE_PUMPING"]
+    # )
 
     return grid_generation
 
