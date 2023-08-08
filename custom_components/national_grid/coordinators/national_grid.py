@@ -70,6 +70,13 @@ def get_data(
         current_data, "wind_forecast", get_hourly_wind_forecast, now_utc_full
     )
 
+    wind_forecast_earliest = obtain_data_with_fallback(
+        current_data,
+        "wind_forecast_earliest",
+        get_hourly_wind_forecast_earliest,
+        now_utc_full,
+    )
+
     carbon_intensity = obtain_data_with_fallback(
         current_data, "carbon_intensity", get_carbon_intensity, now_utc_full
     )
@@ -96,6 +103,7 @@ def get_data(
         carbon_intensity=carbon_intensity,
         wind_data=wind_data,
         wind_forecast=wind_forecast,
+        wind_forecast_earliest=wind_forecast_earliest,
         grid_generation=grid_generation,
     )
 
@@ -143,6 +151,40 @@ def get_hourly_wind_forecast(now_utc: datetime) -> NationalGridWindForecast:
         )
 
     return NationalGridWindForecast(forecast=wind_forecast)
+
+
+def get_hourly_wind_forecast_earliest(now_utc: datetime) -> NationalGridWindForecast:
+    # Get forecast from now to today + 2 days at 8pm
+    start_time_formatted = now_utc.replace(
+        minute=00, second=00, microsecond=00
+    ).strftime("%Y-%m-%dT%H:%M:%S")
+    end_time_formatted = (
+        (now_utc + timedelta(days=2))
+        .replace(hour=20, minute=00, second=00, microsecond=00)
+        .strftime("%Y-%m-%dT%H:%M:%S")
+    )
+
+    url = (
+        "https://data.elexon.co.uk/bmrs/api/v1/forecast/generation/wind/earliest?from="
+        + start_time_formatted
+        + "&to="
+        + end_time_formatted
+        + "&format=json"
+    )
+    response = requests.get(url, timeout=10)
+    item_list = json.loads(response.content)["data"]
+
+    wind_forecast_earliest = []
+
+    for item in item_list:
+        wind_forecast_earliest.append(
+            NationalGridWindForecastItem(
+                start_time=datetime.strptime(item["startTime"], "%Y-%m-%dT%H:%M:%S%z"),
+                generation=int(item["generation"]),
+            )
+        )
+
+    return NationalGridWindForecast(forecast=wind_forecast_earliest)
 
 
 def get_current_price(api_key: str, today_utc: str) -> float:

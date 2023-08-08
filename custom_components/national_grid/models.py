@@ -42,4 +42,5 @@ class NationalGridData(TypedDict):
     carbon_intensity: int
     wind_data: NationalGridWindData
     wind_forecast: NationalGridWindForecast
+    wind_forecast_earliest: NationalGridWindForecast
     grid_generation: NationalGridGeneration

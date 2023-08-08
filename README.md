@@ -100,6 +100,19 @@ forecast:
 ...
 ```
 
+### Wind Forecast Earliest Entity
+
+Name - Wind Forecast Earlist\
+ID - sensor.national_grid_wind_forecast_earliest\
+State - Current hour earliest forecast\
+Attributes:
+```
+forecast:
+    - start_time: ...
+      generation: ...
+...
+```
+
 ## Uses / Examples
 This section outlines some graphs / views I have personally created with the data provided by the integration.
 

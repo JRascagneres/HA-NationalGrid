@@ -217,6 +217,15 @@ SENSORS_GENERATION = (
         extra_attributes_key="wind_forecast",
     ),
     NationalGridSensorEntityDescription(
+        key="wind_forecast_earliest.forecast.0.generation",
+        name="Wind Forecast Earliest",
+        unique_id="wind_forecast_earliest",
+        native_unit_of_measurement="MWh",
+        icon="mdi:wind-turbine",
+        state_class=SensorStateClass.MEASUREMENT,
+        extra_attributes_key="wind_forecast_earliest",
+    ),
+    NationalGridSensorEntityDescription(
         key=None,
         name="Grid Generation",
         unique_id="grid_generation",
