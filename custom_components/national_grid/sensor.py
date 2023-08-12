@@ -136,6 +136,22 @@ SENSORS_GENERATION = (
         state_class=SensorStateClass.MEASUREMENT,
     ),
     NationalGridSensorEntityDescription(
+        key="grid_generation.national_wind_mwh",
+        name="Grid Generation National Wind MWh",
+        unique_id="grid_generation_national_wind_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:wind-turbine",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.embedded_wind_mwh",
+        name="Grid Generation Embedded Wind MWh",
+        unique_id="grid_generation_embedded_wind_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:wind-turbine",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
         key="grid_generation.solar_mwh",
         name="Grid Generation Solar MWh",
         unique_id="grid_generation_solar_mwh",

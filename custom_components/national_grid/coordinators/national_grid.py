@@ -296,6 +296,8 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
         biomass_mwh=0,
         nuclear_mwh=0,
         wind_mwh=0,
+        national_wind_mwh=0,
+        embedded_wind_mwh=0,
         solar_mwh=0,
         pumped_storage_mwh=0,
         hydro_mwh=0,
@@ -327,6 +329,7 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
                 national_grid_generation["nuclear_mwh"] = generation
             elif fuelType == "WIND":
                 national_grid_generation["wind_mwh"] = generation
+                national_grid_generation["national_wind_mwh"] = generation
             elif fuelType == "PS":
                 national_grid_generation["pumped_storage_mwh"] = generation
             elif fuelType == "NPSHYD":
@@ -376,6 +379,8 @@ def get_generation_old(
         biomass_mwh=int(latestItem["biomass"]),
         nuclear_mwh=int(latestItem["nuclear"]),
         wind_mwh=int(latestItem["wind"]),
+        national_wind_mwh=int(latestItem["wind"]),
+        embedded_wind_mwh=0,
         solar_mwh=0,
         pumped_storage_mwh=int(latestItem["ps"]),
         hydro_mwh=int(latestItem["npshyd"]),
@@ -412,6 +417,9 @@ def get_generation_combined(api_key: str, now_utc_full: datetime, today_utc: str
 
     grid_generation["wind_mwh"] += int(national_grid_data["EMBEDDED_WIND_GENERATION"])
     grid_generation["solar_mwh"] = int(national_grid_data["EMBEDDED_SOLAR_GENERATION"])
+    grid_generation["embedded_wind_mwh"] = int(
+        national_grid_data["EMBEDDED_WIND_GENERATION"]
+    )
     # grid_generation["pumped_storage_mwh"] += -int(
     #     national_grid_data["PUMP_STORAGE_PUMPING"]
     # )

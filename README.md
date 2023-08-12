@@ -74,6 +74,8 @@ oil_mwh
 coal_mwh
 nuclear_mwh
 wind_mwh
+national_wind_mwh
+embedded_wind_mwh
 solar_mwh
 pumped_storage_mwh
 hydro_mwh

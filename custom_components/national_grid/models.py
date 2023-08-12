@@ -10,6 +10,8 @@ class NationalGridGeneration(TypedDict):
     nuclear_mwh: int  # nuclear
     wind_mwh: int  # wind
     solar_mwh: int  # solar
+    national_wind_mwh: int  # wind plugged into national transmission network
+    embedded_wind_mwh: int  # wind plugged into local distribution networks
     pumped_storage_mwh: int  # ps - pumped storage
     hydro_mwh: int  # npshyd - non pumped storage hydro plant
     other_mwh: int  # other - undefined
