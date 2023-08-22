@@ -84,6 +84,22 @@ SENSORS = (
         state_class=None,
         device_class=SensorDeviceClass.DATE,
     ),
+    NationalGridSensorEntityDescription(
+        key="total_demand_mwh",
+        name="Total Demand MWh",
+        unique_id="total_demand_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:transmission-tower",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="total_transfers_mwh",
+        name="Total Transfers MWh",
+        unique_id="total_transfers_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:transmission-tower-export",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
 )
 
 SENSORS_GENERATION = (
@@ -219,6 +235,14 @@ SENSORS_GENERATION = (
         key="grid_generation.norway_mwh",
         name="Grid Generation Norway MWh",
         unique_id="grid_generation_norway_mwh",
+        native_unit_of_measurement="MWh",
+        icon="mdi:transmission-tower",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.total_generation_mwh",
+        name="Grid Generation Total MWh",
+        unique_id="grid_generation_total_generation_mwh",
         native_unit_of_measurement="MWh",
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.MEASUREMENT,

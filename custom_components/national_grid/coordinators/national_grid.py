@@ -98,6 +98,14 @@ def get_data(
         current_data, "wind_data", get_wind_data, today, tomorrow
     )
 
+    total_demand_mwh = obtain_data_with_fallback(
+        current_data, "total_demand_mwh", get_demand, grid_generation
+    )
+
+    total_transfers_mwh = obtain_data_with_fallback(
+        current_data, "transfers_mwh", get_transfers, grid_generation
+    )
+
     return NationalGridData(
         sell_price=current_price,
         carbon_intensity=carbon_intensity,
@@ -105,6 +113,8 @@ def get_data(
         wind_forecast=wind_forecast,
         wind_forecast_earliest=wind_forecast_earliest,
         grid_generation=grid_generation,
+        total_demand_mwh=total_demand_mwh,
+        total_transfers_mwh=total_transfers_mwh,
     )
 
 
@@ -307,6 +317,7 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
         netherlands_mwh=0,
         belgium_mwh=0,
         norway_mwh=0,
+        total_generation_mwh=0,
         grid_collection_time=latest_publish_time,
     )
 
@@ -346,6 +357,18 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
                 national_grid_generation["belgium_mwh"] = generation
             elif fuelType == "INTNSL":
                 national_grid_generation["norway_mwh"] = generation
+
+    national_grid_generation["total_generation_mwh"] = (
+        national_grid_generation["gas_mwh"]
+        + national_grid_generation["oil_mwh"]
+        + national_grid_generation["coal_mwh"]
+        + national_grid_generation["biomass_mwh"]
+        + national_grid_generation["nuclear_mwh"]
+        + national_grid_generation["wind_mwh"]
+        + national_grid_generation["solar_mwh"]
+        + national_grid_generation["hydro_mwh"]
+        + national_grid_generation["other_mwh"]
+    )
 
     return national_grid_generation
 
@@ -425,6 +448,39 @@ def get_generation_combined(api_key: str, now_utc_full: datetime, today_utc: str
     # )
 
     return grid_generation
+
+
+# Just adds up all of the generation and transfers
+def get_demand(grid_generation: NationalGridGeneration):
+    return (
+        grid_generation["gas_mwh"]
+        + grid_generation["oil_mwh"]
+        + grid_generation["coal_mwh"]
+        + grid_generation["biomass_mwh"]
+        + grid_generation["nuclear_mwh"]
+        + grid_generation["wind_mwh"]
+        + grid_generation["solar_mwh"]
+        + grid_generation["pumped_storage_mwh"]
+        + grid_generation["hydro_mwh"]
+        + grid_generation["other_mwh"]
+        + grid_generation["france_mwh"]
+        + grid_generation["ireland_mwh"]
+        + grid_generation["netherlands_mwh"]
+        + grid_generation["belgium_mwh"]
+        + grid_generation["norway_mwh"]
+    )
+
+
+# Just adds up all of the transfers from interconnectors and storage
+def get_transfers(grid_generation: NationalGridGeneration):
+    return (
+        grid_generation["france_mwh"]
+        + grid_generation["ireland_mwh"]
+        + grid_generation["netherlands_mwh"]
+        + grid_generation["belgium_mwh"]
+        + grid_generation["norway_mwh"]
+        + grid_generation["pumped_storage_mwh"]
+    )
 
 
 def get_bmrs_data(url: str) -> OrderedDict[str, Any]:

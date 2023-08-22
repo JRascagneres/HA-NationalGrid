@@ -20,6 +20,7 @@ class NationalGridGeneration(TypedDict):
     netherlands_mwh: int  # intned ( Brit Ned )
     belgium_mwh: int  # intnem ( Nemo )
     norway_mwh: int  # intnsl ( North Sea Link )
+    total_generation_mwh: int  # total generation
     grid_collection_time: datetime
 
 
@@ -46,3 +47,5 @@ class NationalGridData(TypedDict):
     wind_forecast: NationalGridWindForecast
     wind_forecast_earliest: NationalGridWindForecast
     grid_generation: NationalGridGeneration
+    total_demand_mwh: int
+    total_transfers_mwh: int
