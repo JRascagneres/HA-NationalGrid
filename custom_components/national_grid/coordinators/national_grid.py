@@ -358,66 +358,7 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
             elif fuelType == "INTNSL":
                 national_grid_generation["norway_mwh"] = generation
 
-    national_grid_generation["total_generation_mwh"] = (
-        national_grid_generation["gas_mwh"]
-        + national_grid_generation["oil_mwh"]
-        + national_grid_generation["coal_mwh"]
-        + national_grid_generation["biomass_mwh"]
-        + national_grid_generation["nuclear_mwh"]
-        + national_grid_generation["wind_mwh"]
-        + national_grid_generation["solar_mwh"]
-        + national_grid_generation["hydro_mwh"]
-        + national_grid_generation["other_mwh"]
-    )
-
     return national_grid_generation
-
-
-def get_generation_old(
-    api_key: str, from_datetime: str, to_datetime: str
-) -> NationalGridGeneration:
-    url = (
-        "https://api.bmreports.com/BMRS/FUELINST/v1?APIKey="
-        + api_key
-        + "&FromDateTime="
-        + from_datetime
-        + "&ToDateTime="
-        + to_datetime
-    )
-
-    latestItem = get_bmrs_data_latest(url)
-    grid_collection_time = datetime.strptime(
-        latestItem["publishingPeriodCommencingTime"], "%Y-%m-%d %H:%M:%S"
-    )
-    grid_collection_time = grid_collection_time.replace(tzinfo=tz.tzutc())
-    grid_collection_time = grid_collection_time.astimezone(tz=dt_util.now().tzinfo)
-
-    url = "https://api.bmreports.com/BMRS/INTERFUELHH/v1?APIKey=" + api_key
-    latest_interconnectors_item = get_bmrs_data_latest(url)
-
-    return NationalGridGeneration(
-        gas_mwh=int(latestItem["ccgt"]) + int(latestItem["ocgt"]),
-        oil_mwh=int(latestItem["oil"]),
-        coal_mwh=int(latestItem["coal"]),
-        biomass_mwh=int(latestItem["biomass"]),
-        nuclear_mwh=int(latestItem["nuclear"]),
-        wind_mwh=int(latestItem["wind"]),
-        national_wind_mwh=int(latestItem["wind"]),
-        embedded_wind_mwh=0,
-        solar_mwh=0,
-        pumped_storage_mwh=int(latestItem["ps"]),
-        hydro_mwh=int(latestItem["npshyd"]),
-        other_mwh=int(latestItem["other"]),
-        france_mwh=int(latest_interconnectors_item["intfrGeneration"])
-        + int(latest_interconnectors_item["intelecGeneration"])
-        + int(latest_interconnectors_item["intifa2Generation"]),
-        ireland_mwh=int(latest_interconnectors_item["intirlGeneration"])
-        + int(latest_interconnectors_item["intewGeneration"]),
-        netherlands_mwh=int(latest_interconnectors_item["intnedGeneration"]),
-        belgium_mwh=int(latest_interconnectors_item["intnemGeneration"]),
-        norway_mwh=int(latest_interconnectors_item["intnslGeneration"]),
-        grid_collection_time=grid_collection_time,
-    )
 
 
 def get_generation_combined(api_key: str, now_utc_full: datetime, today_utc: str):
@@ -430,10 +371,6 @@ def get_generation_combined(api_key: str, now_utc_full: datetime, today_utc: str
         "%Y-%m-%d %H:%M:%S"
     )
 
-    # grid_generation = get_generation_old(
-    #     api_key, two_hours_ago_utc_formatted_datetime, now_utc_formatted_datetime
-    # )
-
     national_grid_data = get_national_grid_data(today_utc, now_utc_full)
     if national_grid_data is None:
         return UnexpectedDataError("National Grid ESO data None")
@@ -443,9 +380,18 @@ def get_generation_combined(api_key: str, now_utc_full: datetime, today_utc: str
     grid_generation["embedded_wind_mwh"] = int(
         national_grid_data["EMBEDDED_WIND_GENERATION"]
     )
-    # grid_generation["pumped_storage_mwh"] += -int(
-    #     national_grid_data["PUMP_STORAGE_PUMPING"]
-    # )
+
+    grid_generation["total_generation_mwh"] = (
+        grid_generation["gas_mwh"]
+        + grid_generation["oil_mwh"]
+        + grid_generation["coal_mwh"]
+        + grid_generation["biomass_mwh"]
+        + grid_generation["nuclear_mwh"]
+        + grid_generation["wind_mwh"]
+        + grid_generation["solar_mwh"]
+        + grid_generation["hydro_mwh"]
+        + grid_generation["other_mwh"]
+    )
 
     return grid_generation
 
