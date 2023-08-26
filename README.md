@@ -1,7 +1,10 @@
 # National Grid Home Assistant Integration
 ![installation_badge](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=integration%20usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.national_grid.total)
 
-Custom component providing information about the UK National Grid
+
+Custom component providing information about the UK National Grid. Provides generation data, forecast data and more from the official endorsed APIs of the UK power network.
+
+This integration is in no way affiliated with or approved by the National Grid.
 
 ## Installation
 There are two methods of setting up the integration: Either using HACS or manually.
