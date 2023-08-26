@@ -126,6 +126,8 @@ This section outlines some graphs / views I have personally created with the dat
 ![Example 2 screenshot](docs/assets/example2.png)
 ![Example 3 screenshot](docs/assets/example3.png)
 ![Example 4 screenshot](docs/assets/example4.png)
+![Example 5 screenshot](docs/assets/example5.png)
+![Example 6 screenshot](docs/assets/example6.png)
 
 ## Data Sources
 
