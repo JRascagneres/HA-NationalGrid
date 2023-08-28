@@ -18,7 +18,7 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import NationalGridCoordinator
-from .const import DATA_CLIENT, DOMAIN
+from .const import DATA_CLIENT, DOMAIN, INCLUDE_API_OPTION, API_REQUIRED
 
 SCAN_INTERVAL = timedelta(minutes=5)
 _LOGGER = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class NationalGridSensorEntityDescription(SensorEntityDescription):
     extra_attributes_key: str | None = None
 
 
-SENSORS = (
+API_SENSORS = (
     NationalGridSensorEntityDescription(
         key="sell_price",
         name="Current Sell Price",
@@ -42,6 +42,9 @@ SENSORS = (
         icon="mdi:currency-gbp",
         state_class=SensorStateClass.MEASUREMENT,
     ),
+)
+
+SENSORS = (
     NationalGridSensorEntityDescription(
         key="carbon_intensity",
         name="Current Carbon Intensity",
@@ -281,8 +284,14 @@ async def async_setup_entry(
     """Setup the National Grid sensor"""
     coordinator: NationalGridCoordinator = hass.data[DOMAIN][DATA_CLIENT]
 
+    sensors = SENSORS
+
+    api_option = entry.data[INCLUDE_API_OPTION]
+    if api_option == API_REQUIRED:
+        sensors = sensors + API_SENSORS
+
     async_add_entities(
-        NationalGridSensor(coordinator, description) for description in SENSORS
+        NationalGridSensor(coordinator, description) for description in sensors
     )
 
     async_add_entities(

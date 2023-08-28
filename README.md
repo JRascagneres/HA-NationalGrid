@@ -25,11 +25,15 @@ This integration can be added through HACS, this is the easiest and recommended 
 Note: A restart will be required for the integration to be registered.
 
 ## Setup
-An API key first must be obtained for the BMRS API:
+You can optionally provide an API key. The API key is only required for the "current_price" sensor. If you opt not to provide an API key everything else should work as expected, however, you'll be missing that sensor.
+
+If you wish to obtain an API key one must be obtained from the BMRS API following the below instructions. Alternatively simply select the no API key option and skip to the later steps.
+
 1. Register [here](https://www.elexonportal.co.uk/)
 2. 'Register now' in the top right and follow the standard process
 3. Once the account is created login and you'll see 'My Portal' banner open.
 4. Inside the 'My Portal' banner click 'My Profile' - your API key is the 'Scripting Key'
+
 
 Then follow the same steps that are using to setup most integrations:
 1. Head to settings then Devices & Services
@@ -41,7 +45,7 @@ Then follow the same steps that are using to setup most integrations:
 ## Sensors
 | Name | ID | Description |
 | ---- | -- | ----------- |
-| National Grid Current Sell Price | sensor.national_grid_current_sell_price | Current balancing price of Grid |
+| National Grid Current Sell Price (optional) | sensor.national_grid_current_sell_price | Current balancing price of Grid |
 | National Grid Today Wind Peak | sensor.national_grid_today_wind_peak | Estimated peak wind production of Grid today |
 | National Grid Today Wind Peak Time | sensor.national_grid_today_wind_peak_time | Estimated time of peak wind production of Grid today |
 | National Grid Tomorrow Wind Peak | sensor.national_grid_tomorrow_wind_peak | Estimated peak wind production of Grid tomorrow |
