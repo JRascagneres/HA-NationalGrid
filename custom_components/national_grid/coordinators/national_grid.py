@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from ..const import API_KEY, DOMAIN
+from ..const import API_KEY, API_REQUIRED, DOMAIN, INCLUDE_API_OPTION
 from ..errors import InvalidAuthError, UnexpectedDataError
 from ..models import (
     NationalGridData,
@@ -57,6 +57,12 @@ def get_data(
 ) -> NationalGridData:
     api_key = config[API_KEY]
 
+    # This is for backwards compatibility
+    if INCLUDE_API_OPTION in config:
+        api_key_included = config[INCLUDE_API_OPTION]
+    else:
+        api_key_included = API_REQUIRED
+
     today_utc = dt_util.utcnow().strftime("%Y-%m-%d")
 
     today = dt_util.now().strftime("%Y-%m-%d")
@@ -90,9 +96,11 @@ def get_data(
         today_utc,
     )
 
-    current_price = obtain_data_with_fallback(
-        current_data, "sell_price", get_current_price, api_key, today_utc
-    )
+    current_price = 0
+    if api_key_included == API_REQUIRED:
+        current_price = obtain_data_with_fallback(
+            current_data, "sell_price", get_current_price, api_key, today_utc
+        )
 
     wind_data = obtain_data_with_fallback(
         current_data, "wind_data", get_wind_data, today, tomorrow
@@ -478,6 +486,8 @@ def obtain_data_with_fallback(current_data, key, func, *args):
     except requests.exceptions.ConnectionError as e:
         _LOGGER.warning("Request connection error")
         return get_data_if_exists(current_data, key)
+    except InvalidAuthError as e:
+        raise e
     except Exception as e:  # pylint: disable=broad-except
         _LOGGER.exception("Failed to obtain data")
         return get_data_if_exists(current_data, key)

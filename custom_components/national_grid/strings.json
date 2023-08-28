@@ -1,11 +1,14 @@
 {
     "config": {
         "step": {
-            "user": {
+            "include_api": {
+                "description": "You can optionally provide an Elexon Portal API key. If you don't you won't get the 'current_price' sensor"
+            },
+            "add_api_key": {
+                "description": "Visit https://www.elexonportal.co.uk/ to request a token. Follow documentation.",
                 "data": {
                     "api_key": "API Key"
-                },
-                "description": "Visit https://www.elexonportal.co.uk/ to request a token. Follow documentation."
+                }
             }
         }
     }
