@@ -18,7 +18,7 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import NationalGridCoordinator
-from .const import DATA_CLIENT, DOMAIN, INCLUDE_API_OPTION, API_REQUIRED
+from .const import DATA_CLIENT, DOMAIN, API_KEY_PROVIDED
 
 SCAN_INTERVAL = timedelta(minutes=5)
 _LOGGER = logging.getLogger(__name__)
@@ -286,8 +286,7 @@ async def async_setup_entry(
 
     sensors = SENSORS
 
-    api_option = entry.data[INCLUDE_API_OPTION]
-    if api_option == API_REQUIRED:
+    if entry.data[API_KEY_PROVIDED]:
         sensors = sensors + API_SENSORS
 
     async_add_entities(

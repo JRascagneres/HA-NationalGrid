@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from ..const import API_KEY, API_REQUIRED, DOMAIN, INCLUDE_API_OPTION
+from ..const import API_KEY, DOMAIN, API_KEY_PROVIDED
 from ..errors import InvalidAuthError, UnexpectedDataError
 from ..models import (
     NationalGridData,
@@ -57,12 +57,6 @@ def get_data(
 ) -> NationalGridData:
     api_key = config[API_KEY]
 
-    # This is for backwards compatibility
-    if INCLUDE_API_OPTION in config:
-        api_key_included = config[INCLUDE_API_OPTION]
-    else:
-        api_key_included = API_REQUIRED
-
     today_utc = dt_util.utcnow().strftime("%Y-%m-%d")
 
     today = dt_util.now().strftime("%Y-%m-%d")
@@ -97,7 +91,7 @@ def get_data(
     )
 
     current_price = 0
-    if api_key_included == API_REQUIRED:
+    if config[API_KEY_PROVIDED]:
         current_price = obtain_data_with_fallback(
             current_data, "sell_price", get_current_price, api_key, today_utc
         )

@@ -7,11 +7,8 @@ from homeassistant import config_entries
 
 from .const import (
     API_KEY,
-    API_REQUIRED,
-    API_NOT_REQUIRED,
     DOMAIN,
-    INCLUDE_API_OPTION,
-    INCLUDE_API_OPTION_LIST,
+    API_KEY_PROVIDED,
 )
 from .coordinators.national_grid import get_data
 from .errors import InvalidAuthError
@@ -20,30 +17,28 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class NationalGridConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
-        self._api_option = None
+        self._api_option = False
 
     # Initial step provides the API options
     async def async_step_user(self, user_input=None):
-        data_schema = vol.Schema(
-            {vol.Required(INCLUDE_API_OPTION): vol.In(INCLUDE_API_OPTION_LIST)}
-        )
+        data_schema = vol.Schema({vol.Optional(API_KEY_PROVIDED, default=False): bool})
 
         return self.async_show_form(step_id="include_api", data_schema=data_schema)
 
     # Following selection on whether to include API key this is hit
     async def async_step_include_api(self, user_input=None):
-        if INCLUDE_API_OPTION in user_input:
-            self._api_option = user_input[INCLUDE_API_OPTION]
+        if API_KEY_PROVIDED in user_input:
+            self._api_option = user_input[API_KEY_PROVIDED]
 
         # If API Key required option was not selected hit this. Skip through to the end.
         # If this step fails it'll return to this.
-        if self._api_option == API_NOT_REQUIRED:
-            data = {API_KEY: "", INCLUDE_API_OPTION: self._api_option}
+        if not self._api_option:
+            data = {API_KEY: "", API_KEY_PROVIDED: self._api_option}
             data_schema = vol.Schema(
-                {vol.Required(INCLUDE_API_OPTION): vol.In(INCLUDE_API_OPTION_LIST)}
+                {vol.Optional(API_KEY_PROVIDED, default=False): bool}
             )
             return await self.validate_and_create("include_api", data, data_schema)
 
@@ -52,7 +47,7 @@ class NationalGridConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id="add_api_key", data_schema=data_schema)
 
     async def async_step_add_api_key(self, user_input=None):
-        data = {API_KEY: user_input[API_KEY], INCLUDE_API_OPTION: self._api_option}
+        data = {API_KEY: user_input[API_KEY], API_KEY_PROVIDED: self._api_option}
         data_schema = vol.Schema({vol.Required(API_KEY): str})
         return await self.validate_and_create("add_api_key", data, data_schema)
 

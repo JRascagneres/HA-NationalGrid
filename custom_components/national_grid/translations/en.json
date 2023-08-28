@@ -2,7 +2,10 @@
     "config": {
         "step": {
             "include_api": {
-                "description": "You can optionally provide an Elexon Portal API key. If you don't you won't get the 'current_price' sensor"
+                "description": "You can optionally provide an Elexon Portal API key. If you don't you won't get the 'current_price' sensor",
+                "data": {
+                    "api_key_provided": "Provide API Key"
+                }
             },
             "add_api_key": {
                 "description": "Visit https://www.elexonportal.co.uk/ to request a token. Follow documentation.",

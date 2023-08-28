@@ -5,9 +5,4 @@ DOMAIN = "national_grid"
 
 DATA_CLIENT = "DATA_CLIENT"
 
-INCLUDE_API_OPTION = "include_api_option"
-
-API_REQUIRED = "Provide API Key"
-API_NOT_REQUIRED = "Don't Provide API Key"
-
-INCLUDE_API_OPTION_LIST = (API_REQUIRED, API_NOT_REQUIRED)
+API_KEY_PROVIDED = "api_key_provided"
