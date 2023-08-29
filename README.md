@@ -34,6 +34,8 @@ If you wish to obtain an API key one must be obtained from the BMRS API followin
 3. Once the account is created login and you'll see 'My Portal' banner open.
 4. Inside the 'My Portal' banner click 'My Profile' - your API key is the 'Scripting Key'
 
+Note: Some users have seen that this key can take a significant period of time to become active. If the API key isn't accepted by the integration I'd recommend installing the integration without a key and then a day later, removing the integration and re-adding it with the key. The reason we recommend installing the integration without a key in the meantime is so that you can build up the data history for the sensors.
+
 
 Then follow the same steps that are using to setup most integrations:
 1. Head to settings then Devices & Services
