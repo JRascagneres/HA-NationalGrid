@@ -21,6 +21,8 @@ from ..errors import InvalidAuthError, UnexpectedDataError
 from ..models import (
     NationalGridData,
     NationalGridGeneration,
+    NationalGridSolarForecast,
+    NationalGridSolarForecastItem,
     NationalGridWindData,
     NationalGridWindForecast,
     NationalGridWindForecastItem,
@@ -66,6 +68,20 @@ def get_data(
 
     now_utc_full = dt_util.utcnow()
 
+    current_price = 0
+    solar_forecast = None
+    if config[API_KEY_PROVIDED]:
+        current_price = obtain_data_with_fallback(
+            current_data, "sell_price", get_current_price, api_key, today_utc
+        )
+        solar_forecast = obtain_data_with_fallback(
+            current_data,
+            "solar_forecast",
+            get_half_hourly_solar_forecast,
+            api_key,
+            today_full,
+        )
+
     wind_forecast = obtain_data_with_fallback(
         current_data, "wind_forecast", get_hourly_wind_forecast, now_utc_full
     )
@@ -90,12 +106,6 @@ def get_data(
         today_utc,
     )
 
-    current_price = 0
-    if config[API_KEY_PROVIDED]:
-        current_price = obtain_data_with_fallback(
-            current_data, "sell_price", get_current_price, api_key, today_utc
-        )
-
     wind_data = obtain_data_with_fallback(
         current_data, "wind_data", get_wind_data, today, tomorrow
     )
@@ -114,6 +124,7 @@ def get_data(
         wind_data=wind_data,
         wind_forecast=wind_forecast,
         wind_forecast_earliest=wind_forecast_earliest,
+        solar_forecast=solar_forecast,
         grid_generation=grid_generation,
         total_demand_mwh=total_demand_mwh,
         total_transfers_mwh=total_transfers_mwh,
@@ -197,6 +208,60 @@ def get_hourly_wind_forecast_earliest(now_utc: datetime) -> NationalGridWindFore
         )
 
     return NationalGridWindForecast(forecast=wind_forecast_earliest)
+
+
+def get_half_hourly_solar_forecast(
+    api_key: str, now: datetime
+) -> NationalGridSolarForecast:
+    nearest_30_minutes = now + (now.min.replace(tzinfo=now.tzinfo) - now) % timedelta(
+        minutes=30
+    )
+
+    tomorrow = now + timedelta(days=1)
+    day_after_tomorrow = now + timedelta(days=2)
+
+    times = [now, tomorrow, day_after_tomorrow]
+    results = []
+    for date in times:
+        date_format = date.strftime("%Y-%m-%d")
+        url = (
+            "https://api.bmreports.com/BMRS/B1440/v1?APIKey="
+            + api_key
+            + "&SettlementDate="
+            + date_format
+            + "&Period=*"
+        )
+
+        response = get_bmrs_data_items(url)
+        results = results + response
+
+    forecast = []
+    current_value = 0
+    for item in results:
+        if item["businessType"] != "Solar generation":
+            continue
+
+        period_from_midnight = timedelta(
+            minutes=30 * (int(item["settlementPeriod"]) - 1)
+        )
+
+        start_time = (
+            datetime.strptime(item["settlementDate"], "%Y-%m-%d") + period_from_midnight
+        )
+
+        gen_value = int(float(item["quantity"]))
+
+        forecast.append(
+            NationalGridSolarForecastItem(start_time=start_time, generation=gen_value)
+        )
+
+        if start_time == nearest_30_minutes:
+            current_value = gen_value
+
+    return NationalGridSolarForecast(
+        current_value=current_value,
+        forecast=forecast,
+    )
 
 
 def get_current_price(api_key: str, today_utc: str) -> float:
@@ -443,6 +508,9 @@ def get_bmrs_data(url: str) -> OrderedDict[str, Any]:
 
 def get_bmrs_data_items(url: str) -> OrderedDict[str, Any]:
     data = get_bmrs_data(url)
+    if data["response"]["responseMetadata"]["httpCode"] == "204":
+        return []
+
     if (
         "response" not in data
         or "responseBody" not in data["response"]

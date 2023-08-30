@@ -42,6 +42,15 @@ API_SENSORS = (
         icon="mdi:currency-gbp",
         state_class=SensorStateClass.MEASUREMENT,
     ),
+    NationalGridSensorEntityDescription(
+        key="solar_forecast.current_value",
+        name="Solar Forecast",
+        unique_id="solar_forecast",
+        native_unit_of_measurement="MWh",
+        icon="mdi:solar-power-variant",
+        state_class=SensorStateClass.MEASUREMENT,
+        extra_attributes_key="solar_forecast",
+    ),
 )
 
 SENSORS = (
