@@ -217,10 +217,11 @@ def get_half_hourly_solar_forecast(
         minutes=30
     )
 
+    yesterday = now - timedelta(days=1)
     tomorrow = now + timedelta(days=1)
     day_after_tomorrow = now + timedelta(days=2)
 
-    times = [now, tomorrow, day_after_tomorrow]
+    times = [yesterday, now, tomorrow, day_after_tomorrow]
     results = []
     for date in times:
         date_format = date.strftime("%Y-%m-%d")
@@ -235,18 +236,26 @@ def get_half_hourly_solar_forecast(
         response = get_bmrs_data_items(url)
         results = results + response
 
+    unique_date_list = []
     forecast = []
     current_value = 0
     for item in results:
         if item["businessType"] != "Solar generation":
             continue
 
-        period_from_midnight = timedelta(
-            minutes=30 * (int(item["settlementPeriod"]) - 1)
-        )
+        settlementDate = item["settlementDate"]
+        settlementPeriod = item["settlementPeriod"]
+
+        unique_key = settlementDate + settlementPeriod
+        if unique_key in unique_date_list:
+            continue
+
+        unique_date_list.append(unique_key)
+
+        period_from_midnight = timedelta(minutes=30 * (int(settlementPeriod) - 1))
 
         start_time = (
-            datetime.strptime(item["settlementDate"], "%Y-%m-%d") + period_from_midnight
+            datetime.strptime(settlementDate, "%Y-%m-%d") + period_from_midnight
         ).replace(tzinfo=now.tzinfo)
 
         gen_value = int(float(item["quantity"]))
@@ -257,6 +266,8 @@ def get_half_hourly_solar_forecast(
 
         if start_time == nearest_30_minutes:
             current_value = gen_value
+
+    forecast = sorted(forecast, key=lambda x: x["start_time"])
 
     return NationalGridSolarForecast(
         current_value=current_value,
