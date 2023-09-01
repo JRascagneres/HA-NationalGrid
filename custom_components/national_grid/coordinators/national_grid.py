@@ -79,7 +79,7 @@ def get_data(
             "solar_forecast",
             get_half_hourly_solar_forecast,
             api_key,
-            today_full,
+            now_utc_full,
         )
 
     wind_forecast = obtain_data_with_fallback(
@@ -247,7 +247,7 @@ def get_half_hourly_solar_forecast(
 
         start_time = (
             datetime.strptime(item["settlementDate"], "%Y-%m-%d") + period_from_midnight
-        )
+        ).replace(tzinfo=now.tzinfo)
 
         gen_value = int(float(item["quantity"]))
 
