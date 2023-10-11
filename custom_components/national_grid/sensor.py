@@ -260,7 +260,7 @@ SENSORS_GENERATION = (
         state_class=SensorStateClass.MEASUREMENT,
     ),
     NationalGridSensorEntityDescription(
-        key="wind_forecast.forecast.0.generation",
+        key="wind_forecast.current_value",
         name="Wind Forecast",
         unique_id="wind_forecast",
         native_unit_of_measurement="MWh",
@@ -269,7 +269,7 @@ SENSORS_GENERATION = (
         extra_attributes_key="wind_forecast",
     ),
     NationalGridSensorEntityDescription(
-        key="wind_forecast_earliest.forecast.0.generation",
+        key="wind_forecast_earliest.current_value",
         name="Wind Forecast Earliest",
         unique_id="wind_forecast_earliest",
         native_unit_of_measurement="MWh",

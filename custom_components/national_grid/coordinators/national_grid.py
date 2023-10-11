@@ -83,13 +83,18 @@ def get_data(
         )
 
     wind_forecast = obtain_data_with_fallback(
-        current_data, "wind_forecast", get_hourly_wind_forecast, now_utc_full
+        current_data,
+        "wind_forecast",
+        get_hourly_wind_forecast,
+        today_full,
+        now_utc_full,
     )
 
     wind_forecast_earliest = obtain_data_with_fallback(
         current_data,
         "wind_forecast_earliest",
         get_hourly_wind_forecast_earliest,
+        today_full,
         now_utc_full,
     )
 
@@ -142,16 +147,28 @@ def get_data_if_exists(data, key: str):
     return None
 
 
-def get_hourly_wind_forecast(now_utc: datetime) -> NationalGridWindForecast:
+def get_hourly_wind_forecast(
+    now: datetime, now_utc: datetime
+) -> NationalGridWindForecast:
+    # Need to calculate start. We want data from 8pm on current day to day+2 8pm... however, this is calculated every so often.
+    # This means that day + 2 isn't calculated until 03:30 GMT
+
+    start_time = now_utc
+
+    # If before the forecast time set start day to previous day
+    comparison = now_utc.replace(hour=3, minute=30)
+    if now_utc < comparison:
+        start_time = start_time - timedelta(days=1)
+
+    start_time = start_time.replace(hour=00, minute=00, second=00)
+    end_time = start_time + timedelta(days=2)
+    end_time = end_time.replace(hour=20, minute=00, second=00)
+
     # Get forecast from now to today + 2 days at 8pm
-    start_time_formatted = now_utc.replace(
-        minute=00, second=00, microsecond=00
-    ).strftime("%Y-%m-%dT%H:%M:%S")
-    end_time_formatted = (
-        (now_utc + timedelta(days=2))
-        .replace(hour=20, minute=00, second=00, microsecond=00)
-        .strftime("%Y-%m-%dT%H:%M:%S")
-    )
+    start_time_formatted = start_time.strftime("%Y-%m-%dT%H:%M:%S")
+    end_time_formatted = end_time.strftime("%Y-%m-%dT%H:%M:%S")
+
+    current_hour = now.replace(minute=0, second=0, microsecond=0)
 
     url = (
         "https://data.elexon.co.uk/bmrs/api/v1/forecast/generation/wind/latest?from="
@@ -164,28 +181,50 @@ def get_hourly_wind_forecast(now_utc: datetime) -> NationalGridWindForecast:
     item_list = json.loads(response.content)["data"]
 
     wind_forecast = []
+    current_generation = 0
 
     for item in item_list:
+        forecast_item_start_time = datetime.strptime(
+            item["startTime"], "%Y-%m-%dT%H:%M:%S%z"
+        )
+
         wind_forecast.append(
             NationalGridWindForecastItem(
-                start_time=datetime.strptime(item["startTime"], "%Y-%m-%dT%H:%M:%S%z"),
+                start_time=forecast_item_start_time,
                 generation=int(item["generation"]),
             )
         )
 
-    return NationalGridWindForecast(forecast=wind_forecast)
+        if forecast_item_start_time == current_hour:
+            current_generation = int(item["generation"])
 
-
-def get_hourly_wind_forecast_earliest(now_utc: datetime) -> NationalGridWindForecast:
-    # Get forecast from now to today + 2 days at 8pm
-    start_time_formatted = now_utc.replace(
-        minute=00, second=00, microsecond=00
-    ).strftime("%Y-%m-%dT%H:%M:%S")
-    end_time_formatted = (
-        (now_utc + timedelta(days=2))
-        .replace(hour=20, minute=00, second=00, microsecond=00)
-        .strftime("%Y-%m-%dT%H:%M:%S")
+    return NationalGridWindForecast(
+        forecast=wind_forecast, current_value=current_generation
     )
+
+
+def get_hourly_wind_forecast_earliest(
+    now: datetime, now_utc: datetime
+) -> NationalGridWindForecast:
+    # Need to calculate start. We want data from 8pm on current day to day+2 8pm... however, this is calculated every so often.
+    # This means that day + 2 isn't calculated until 03:30 GMT
+
+    start_time = now_utc
+
+    # If before the forecast time set start day to previous day
+    comparison = now_utc.replace(hour=3, minute=30)
+    if now_utc < comparison:
+        start_time = start_time - timedelta(days=1)
+
+    start_time = start_time.replace(hour=00, minute=00, second=00)
+    end_time = start_time + timedelta(days=2)
+    end_time = end_time.replace(hour=20, minute=00, second=00)
+
+    # Get forecast from now to today + 2 days at 8pm
+    start_time_formatted = start_time.strftime("%Y-%m-%dT%H:%M:%S")
+    end_time_formatted = end_time.strftime("%Y-%m-%dT%H:%M:%S")
+
+    current_hour = now.replace(minute=0, second=0, microsecond=0)
 
     url = (
         "https://data.elexon.co.uk/bmrs/api/v1/forecast/generation/wind/earliest?from="
@@ -198,16 +237,26 @@ def get_hourly_wind_forecast_earliest(now_utc: datetime) -> NationalGridWindFore
     item_list = json.loads(response.content)["data"]
 
     wind_forecast_earliest = []
+    current_generation = 0
 
     for item in item_list:
+        forecast_item_start_time = datetime.strptime(
+            item["startTime"], "%Y-%m-%dT%H:%M:%S%z"
+        )
+
         wind_forecast_earliest.append(
             NationalGridWindForecastItem(
-                start_time=datetime.strptime(item["startTime"], "%Y-%m-%dT%H:%M:%S%z"),
+                start_time=forecast_item_start_time,
                 generation=int(item["generation"]),
             )
         )
 
-    return NationalGridWindForecast(forecast=wind_forecast_earliest)
+        if forecast_item_start_time == current_hour:
+            current_generation = int(item["generation"])
+
+    return NationalGridWindForecast(
+        forecast=wind_forecast_earliest, current_value=current_generation
+    )
 
 
 def get_half_hourly_solar_forecast(

@@ -37,6 +37,7 @@ class NationalGridWindForecastItem(TypedDict):
 
 
 class NationalGridWindForecast(TypedDict):
+    current_value: int
     forecast: list[NationalGridWindForecastItem]
 
 
