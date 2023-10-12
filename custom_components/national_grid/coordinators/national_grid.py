@@ -164,6 +164,8 @@ def get_hourly_wind_forecast(
     end_time = start_time + timedelta(days=2)
     end_time = end_time.replace(hour=20, minute=00, second=00)
 
+    start_time = start_time - timedelta(days=1)
+
     # Get forecast from now to today + 2 days at 8pm
     start_time_formatted = start_time.strftime("%Y-%m-%dT%H:%M:%S")
     end_time_formatted = end_time.strftime("%Y-%m-%dT%H:%M:%S")
@@ -219,6 +221,8 @@ def get_hourly_wind_forecast_earliest(
     start_time = start_time.replace(hour=00, minute=00, second=00)
     end_time = start_time + timedelta(days=2)
     end_time = end_time.replace(hour=20, minute=00, second=00)
+
+    start_time = start_time - timedelta(days=1)
 
     # Get forecast from now to today + 2 days at 8pm
     start_time_formatted = start_time.strftime("%Y-%m-%dT%H:%M:%S")
