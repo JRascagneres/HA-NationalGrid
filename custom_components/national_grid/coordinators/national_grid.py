@@ -489,6 +489,16 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
             elif fuelType == "INTNSL":
                 national_grid_generation["norway_mwh"] = generation
 
+    # Do a quick check for data validity
+    if (
+        national_grid_generation["gas_mwh"] == 0
+        and national_grid_generation["coal_mwh"] == 0
+        and national_grid_generation["biomass_mwh"] == 0
+        and national_grid_generation["nuclear_mwh"] == 0
+        and national_grid_generation["hydro_mwh"] == 0
+    ):
+        raise UnexpectedDataError(url)
+
     return national_grid_generation
 
 
