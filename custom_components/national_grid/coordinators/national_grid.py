@@ -86,7 +86,6 @@ def get_data(
         current_data,
         "wind_forecast",
         get_hourly_wind_forecast,
-        today_full,
         now_utc_full,
     )
 
@@ -94,7 +93,6 @@ def get_data(
         current_data,
         "wind_forecast_earliest",
         get_hourly_wind_forecast_earliest,
-        today_full,
         now_utc_full,
     )
 
@@ -147,9 +145,7 @@ def get_data_if_exists(data, key: str):
     return None
 
 
-def get_hourly_wind_forecast(
-    now: datetime, now_utc: datetime
-) -> NationalGridWindForecast:
+def get_hourly_wind_forecast(now_utc: datetime) -> NationalGridWindForecast:
     # Need to calculate start. We want data from 8pm on current day to day+2 8pm... however, this is calculated every so often.
     # This means that day + 2 isn't calculated until 03:30 GMT
 
@@ -170,7 +166,7 @@ def get_hourly_wind_forecast(
     start_time_formatted = start_time.strftime("%Y-%m-%dT%H:%M:%S")
     end_time_formatted = end_time.strftime("%Y-%m-%dT%H:%M:%S")
 
-    current_hour = now.replace(minute=0, second=0, microsecond=0)
+    current_hour = now_utc.replace(minute=0, second=0, microsecond=0)
 
     url = (
         "https://data.elexon.co.uk/bmrs/api/v1/forecast/generation/wind/latest?from="
@@ -200,14 +196,15 @@ def get_hourly_wind_forecast(
         if forecast_item_start_time == current_hour:
             current_generation = int(item["generation"])
 
+    if current_generation == 0:
+        raise UnexpectedDataError
+
     return NationalGridWindForecast(
         forecast=wind_forecast, current_value=current_generation
     )
 
 
-def get_hourly_wind_forecast_earliest(
-    now: datetime, now_utc: datetime
-) -> NationalGridWindForecast:
+def get_hourly_wind_forecast_earliest(now_utc: datetime) -> NationalGridWindForecast:
     # Need to calculate start. We want data from 8pm on current day to day+2 8pm... however, this is calculated every so often.
     # This means that day + 2 isn't calculated until 03:30 GMT
 
@@ -228,7 +225,7 @@ def get_hourly_wind_forecast_earliest(
     start_time_formatted = start_time.strftime("%Y-%m-%dT%H:%M:%S")
     end_time_formatted = end_time.strftime("%Y-%m-%dT%H:%M:%S")
 
-    current_hour = now.replace(minute=0, second=0, microsecond=0)
+    current_hour = now_utc.replace(minute=0, second=0, microsecond=0)
 
     url = (
         "https://data.elexon.co.uk/bmrs/api/v1/forecast/generation/wind/earliest?from="
@@ -257,6 +254,9 @@ def get_hourly_wind_forecast_earliest(
 
         if forecast_item_start_time == current_hour:
             current_generation = int(item["generation"])
+
+    if current_generation == 0:
+        raise UnexpectedDataError
 
     return NationalGridWindForecast(
         forecast=wind_forecast_earliest, current_value=current_generation
