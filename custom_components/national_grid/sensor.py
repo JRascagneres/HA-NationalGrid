@@ -284,6 +284,34 @@ SENSORS_GENERATION = (
         icon="mdi:transmission-tower",
         extra_attributes_key="grid_generation",
     ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.fossil_fuel_percentage_generation",
+        name="Grid Generation Fossil Fuel Percentage",
+        unique_id="fossil_fuel_percentage_generation",
+        native_unit_of_measurement="%",
+        icon="mdi:molecule-co2",
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.renewable_percentage_generation",
+        name="Grid Generation Renewable Percentage",
+        unique_id="renewable_percentage_generation",
+        native_unit_of_measurement="%",
+        icon="mdi:leaf",
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.low_carbon_percentage_generation",
+        name="Grid Generation Low Carbon Percentage",
+        unique_id="low_carbon_percentage_generation",
+        native_unit_of_measurement="%",
+        icon="mdi:leaf",
+    ),
+    NationalGridSensorEntityDescription(
+        key="grid_generation.other_percentage_generation",
+        name="Grid Generation Other Percentage",
+        unique_id="other_percentage_generation",
+        native_unit_of_measurement="%",
+        icon="mdi:help",
+    ),
 )
 
 

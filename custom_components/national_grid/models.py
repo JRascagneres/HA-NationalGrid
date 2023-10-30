@@ -21,6 +21,10 @@ class NationalGridGeneration(TypedDict):
     belgium_mwh: int  # intnem ( Nemo )
     norway_mwh: int  # intnsl ( North Sea Link )
     total_generation_mwh: int  # total generation
+    fossil_fuel_percentage_generation: int  # Counts gas, oil, coal
+    renewable_percentage_generation: int  # Counts solar, wind, hydro
+    low_carbon_percentage_generation: int  # Counts renewable, nuclear
+    other_percentage_generation: int  # Counts nuclear, biomass
     grid_collection_time: datetime
 
 

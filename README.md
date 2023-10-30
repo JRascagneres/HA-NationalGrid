@@ -71,6 +71,11 @@ Then follow the same steps that are using to setup most integrations:
 | National Grid Total Generation | sensor.total_generation_mwh | Total generation in MWh |
 | National Grid Total Demand MWh | sensor.national_grid_total_demand_mwh | Total electricity demand in MWh. This is all generation with the inclusion of interconnectors and storage. |
 | National Grid Total Transfers MWh | sensor.national_grid_total_transfers_mwh | Total electricity transfers in MWh. This is all the transfers which are interconnectors and storage. |
+National Grid Grid Generation Fossil Fuel Percentage | sensor.national_grid_fossil_fuel_percentage_generation | Percentage of total grid generation that is generated from fossil fuel sources: Gas, Oil & Coal
+National Grid Grid Generation Renewable Percentage | sensor.national_grid_renewable_percentage_generation | Percentage of total grid generation that is generated from renewable sources: Solar, Wind & Hydro
+National Grid Grid Generation Low Carbon Percentage | sensor.national_grid_low_carbon_percentage_generation | Percentage of total grid generation that is generated from renewable & low carbon sources: Solar, Wind, Hydro & Nuclear
+National Grid Grid Generation Other Percentage | sensor.national_grid_other_percentage_generation | Percentage of total grid generation that is generated from 'other' sources: Nuclear, Biomass & Unknown / Other
+
 
 Note that the associated time sensors are important. Updates can lag by a few minutes and are in UTC so its possible that 'today' and 'tomorrow' aren't entirely accurate for a period of time.
 
@@ -99,6 +104,10 @@ biomass_mwh
 belgium_mwh
 norway_mwh
 total_generation_mwh
+fossil_fuel_percentage_generation
+renewable_percentage_generation
+low_carbon_percentage_generation
+other_percentage_generation
 grid_collection_time
 ```
 

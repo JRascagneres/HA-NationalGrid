@@ -197,7 +197,7 @@ def get_hourly_wind_forecast(now_utc: datetime) -> NationalGridWindForecast:
             current_generation = int(item["generation"])
 
     if current_generation == 0:
-        raise UnexpectedDataError
+        raise UnexpectedDataError("Hourly wind forecast 'current' is 0")
 
     return NationalGridWindForecast(
         forecast=wind_forecast, current_value=current_generation
@@ -256,7 +256,7 @@ def get_hourly_wind_forecast_earliest(now_utc: datetime) -> NationalGridWindFore
             current_generation = int(item["generation"])
 
     if current_generation == 0:
-        raise UnexpectedDataError
+        raise UnexpectedDataError("Earliest hourly wind forecast 'current' is 0")
 
     return NationalGridWindForecast(
         forecast=wind_forecast_earliest, current_value=current_generation
@@ -449,6 +449,9 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
         belgium_mwh=0,
         norway_mwh=0,
         total_generation_mwh=0,
+        fossil_fuel_percentage_generation=0,
+        renewable_percentage_generation=0,
+        other_percentage_generation=0,
         grid_collection_time=latest_publish_time,
     )
 
@@ -497,7 +500,7 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
         and national_grid_generation["nuclear_mwh"] == 0
         and national_grid_generation["hydro_mwh"] == 0
     ):
-        raise UnexpectedDataError(url)
+        raise UnexpectedDataError("Getting generation returned numerous zero values")
 
     return national_grid_generation
 
@@ -532,6 +535,43 @@ def get_generation_combined(api_key: str, now_utc_full: datetime, today_utc: str
         + grid_generation["solar_mwh"]
         + grid_generation["hydro_mwh"]
         + grid_generation["other_mwh"]
+    )
+
+    grid_generation["fossil_fuel_percentage_generation"] = percentage_calc(
+        (
+            grid_generation["gas_mwh"]
+            + grid_generation["oil_mwh"]
+            + grid_generation["coal_mwh"]
+        ),
+        grid_generation["total_generation_mwh"],
+    )
+
+    grid_generation["renewable_percentage_generation"] = percentage_calc(
+        (
+            grid_generation["solar_mwh"]
+            + grid_generation["wind_mwh"]
+            + grid_generation["hydro_mwh"]
+        ),
+        grid_generation["total_generation_mwh"],
+    )
+
+    grid_generation["low_carbon_percentage_generation"] = percentage_calc(
+        (
+            grid_generation["solar_mwh"]
+            + grid_generation["wind_mwh"]
+            + grid_generation["hydro_mwh"]
+            + grid_generation["nuclear_mwh"]
+        ),
+        grid_generation["total_generation_mwh"],
+    )
+
+    grid_generation["other_percentage_generation"] = percentage_calc(
+        (
+            grid_generation["nuclear_mwh"]
+            + grid_generation["biomass_mwh"]
+            + grid_generation["other_mwh"]
+        ),
+        grid_generation["total_generation_mwh"],
     )
 
     return grid_generation
@@ -627,3 +667,7 @@ def obtain_data_with_fallback(current_data, key, func, *args):
     except Exception as e:  # pylint: disable=broad-except
         _LOGGER.exception("Failed to obtain data")
         return get_data_if_exists(current_data, key)
+
+
+def percentage_calc(int_sum, int_total):
+    return round(int_sum / int_total * 100, 2)
