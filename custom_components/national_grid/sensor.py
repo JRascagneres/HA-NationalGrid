@@ -306,6 +306,13 @@ SENSORS_GENERATION = (
         icon="mdi:leaf",
     ),
     NationalGridSensorEntityDescription(
+        key="grid_generation.low_carbon_with_biomass_percentage_generation",
+        name="Grid Generation Low Carbon With Biomass Percentage",
+        unique_id="low_carbon_with_biomass_percentage_generation",
+        native_unit_of_measurement="%",
+        icon="mdi:leaf",
+    ),
+    NationalGridSensorEntityDescription(
         key="grid_generation.other_percentage_generation",
         name="Grid Generation Other Percentage",
         unique_id="other_percentage_generation",

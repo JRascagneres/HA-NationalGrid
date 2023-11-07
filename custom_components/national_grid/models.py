@@ -24,6 +24,7 @@ class NationalGridGeneration(TypedDict):
     fossil_fuel_percentage_generation: int  # Counts gas, oil, coal
     renewable_percentage_generation: int  # Counts solar, wind, hydro
     low_carbon_percentage_generation: int  # Counts renewable, nuclear
+    low_carbon_with_biomass_percentage_generation: int  # Counts renewable, nuclear, biomass
     other_percentage_generation: int  # Counts nuclear, biomass
     grid_collection_time: datetime
 

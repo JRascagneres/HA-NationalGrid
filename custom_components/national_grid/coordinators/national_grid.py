@@ -565,6 +565,17 @@ def get_generation_combined(api_key: str, now_utc_full: datetime, today_utc: str
         grid_generation["total_generation_mwh"],
     )
 
+    grid_generation["low_carbon_with_biomass_percentage_generation"] = percentage_calc(
+        (
+            grid_generation["solar_mwh"]
+            + grid_generation["wind_mwh"]
+            + grid_generation["hydro_mwh"]
+            + grid_generation["nuclear_mwh"]
+            + grid_generation["biomass_mwh"]
+        ),
+        grid_generation["total_generation_mwh"],
+    )
+
     grid_generation["other_percentage_generation"] = percentage_calc(
         (
             grid_generation["nuclear_mwh"]

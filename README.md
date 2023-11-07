@@ -74,6 +74,7 @@ Then follow the same steps that are using to setup most integrations:
 National Grid Grid Generation Fossil Fuel Percentage | sensor.national_grid_fossil_fuel_percentage_generation | Percentage of total grid generation that is generated from fossil fuel sources: Gas, Oil & Coal
 National Grid Grid Generation Renewable Percentage | sensor.national_grid_renewable_percentage_generation | Percentage of total grid generation that is generated from renewable sources: Solar, Wind & Hydro
 National Grid Grid Generation Low Carbon Percentage | sensor.national_grid_low_carbon_percentage_generation | Percentage of total grid generation that is generated from renewable & low carbon sources: Solar, Wind, Hydro & Nuclear
+National Grid Grid Generation Low Carbon With Biomass Percentage | sensor.low_carbon_with_biomass_percentage_generation | Percentage of total grid generation that is generated from renewable & low carbon sources including Biomass (which is contentious): Solar, Wind, Hydro, Nuclear & Biomass
 National Grid Grid Generation Other Percentage | sensor.national_grid_other_percentage_generation | Percentage of total grid generation that is generated from 'other' sources: Nuclear, Biomass & Unknown / Other
 
 
@@ -107,6 +108,7 @@ total_generation_mwh
 fossil_fuel_percentage_generation
 renewable_percentage_generation
 low_carbon_percentage_generation
+low_carbon_with_biomass_percentage_generation
 other_percentage_generation
 grid_collection_time
 ```
