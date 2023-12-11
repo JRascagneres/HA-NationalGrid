@@ -46,6 +46,10 @@ class NationalGridWindForecast(TypedDict):
     forecast: list[NationalGridWindForecastItem]
 
 
+class NationalGridWindForecastLongTerm(TypedDict):
+    forecast: list[NationalGridWindForecastItem]
+
+
 class NationalGridSolarForecastItem(TypedDict):
     start_time: datetime
     generation: int
@@ -62,6 +66,9 @@ class NationalGridData(TypedDict):
     wind_data: NationalGridWindData
     wind_forecast: NationalGridWindForecast
     wind_forecast_earliest: NationalGridWindForecast
+    now_to_three_wind_forecast: NationalGridWindForecastLongTerm
+    three_to_seven_wind_forecast: NationalGridWindForecastLongTerm
+    seven_to_fourteen_wind_forecast: NationalGridWindForecastLongTerm
     solar_forecast: NationalGridSolarForecast
     grid_generation: NationalGridGeneration
     total_demand_mwh: int

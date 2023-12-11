@@ -25,6 +25,7 @@ from ..models import (
     NationalGridSolarForecastItem,
     NationalGridWindData,
     NationalGridWindForecast,
+    NationalGridWindForecastLongTerm,
     NationalGridWindForecastItem,
 )
 
@@ -121,12 +122,19 @@ def get_data(
         current_data, "transfers_mwh", get_transfers, grid_generation
     )
 
+    three_day, seven_day, fourteen_day = get_long_term_wind_forecast_eso_data(
+        today_full
+    )
+
     return NationalGridData(
         sell_price=current_price,
         carbon_intensity=carbon_intensity,
         wind_data=wind_data,
         wind_forecast=wind_forecast,
         wind_forecast_earliest=wind_forecast_earliest,
+        now_to_three_wind_forecast=three_day,
+        three_to_seven_wind_forecast=seven_day,
+        seven_to_fourteen_wind_forecast=fourteen_day,
         solar_forecast=solar_forecast,
         grid_generation=grid_generation,
         total_demand_mwh=total_demand_mwh,
@@ -386,6 +394,88 @@ def get_national_grid_data(today_utc: str, now_utc: datetime) -> dict[str, Any]:
             return row
 
     return None
+
+
+def get_long_term_wind_forecast_eso_data(
+    now: datetime,
+) -> (
+    NationalGridWindForecastLongTerm,
+    NationalGridWindForecastLongTerm,
+    NationalGridWindForecastLongTerm,
+):
+    url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=93c3048e-1dab-4057-a2a9-417540583929&limit=32000"
+    response = requests.get(url, timeout=20)
+    data = json.loads(response.content)
+
+    # Get 7 day forecast. Will just do now + 7 days
+    nearest_30_minutes = now + (now.min.replace(tzinfo=now.tzinfo) - now) % timedelta(
+        minutes=30
+    )
+    in_three_days = nearest_30_minutes + timedelta(days=3)
+    in_seven_days = nearest_30_minutes + timedelta(days=7)
+    in_fourteen_days = nearest_30_minutes + timedelta(days=14)
+
+    three_day_forecast = []
+    seven_day_forecast = []
+    fourteen_day_forecast = []
+
+    current_forecast = 0
+
+    all_records = data["result"]["records"]
+    for record in all_records:
+        formatted_datetime = datetime.strptime(
+            record["Datetime"], "%Y-%m-%dT%H:%M:%S"
+        ).replace(tzinfo=tz.UTC)
+        forecast = int(record["Wind_Forecast"])
+
+        if formatted_datetime == nearest_30_minutes:
+            current_forecast = forecast
+
+        if (
+            formatted_datetime >= nearest_30_minutes
+            and formatted_datetime <= in_three_days
+        ):
+            three_day_forecast.append(
+                NationalGridWindForecastItem(
+                    start_time=formatted_datetime,
+                    generation=forecast,
+                )
+            )
+
+        if formatted_datetime >= in_three_days and formatted_datetime <= in_seven_days:
+            seven_day_forecast.append(
+                NationalGridWindForecastItem(
+                    start_time=formatted_datetime, generation=forecast
+                )
+            )
+
+        if (
+            formatted_datetime >= in_seven_days
+            and formatted_datetime <= in_fourteen_days
+            and (
+                hour_minute_check(formatted_datetime, 0, 0)
+                or hour_minute_check(formatted_datetime, 3, 0)
+                or hour_minute_check(formatted_datetime, 6, 0)
+                or hour_minute_check(formatted_datetime, 9, 0)
+                or hour_minute_check(formatted_datetime, 12, 0)
+                or hour_minute_check(formatted_datetime, 15, 0)
+                or hour_minute_check(formatted_datetime, 18, 0)
+                or hour_minute_check(formatted_datetime, 21, 0)
+            )
+        ):
+            fourteen_day_forecast.append(
+                NationalGridWindForecastItem(
+                    start_time=formatted_datetime, generation=forecast
+                )
+            )
+
+    three_day = NationalGridWindForecastLongTerm(forecast=three_day_forecast)
+
+    seven_day = NationalGridWindForecastLongTerm(forecast=seven_day_forecast)
+
+    fourteen_day = NationalGridWindForecastLongTerm(forecast=fourteen_day_forecast)
+
+    return (three_day, seven_day, fourteen_day)
 
 
 def get_carbon_intensity(now_utc_full: datetime) -> int:
@@ -682,3 +772,7 @@ def obtain_data_with_fallback(current_data, key, func, *args):
 
 def percentage_calc(int_sum, int_total):
     return round(int_sum / int_total * 100, 2)
+
+
+def hour_minute_check(date: datetime, hour: int, minute: int) -> bool:
+    return date.hour == hour and date.minute == minute

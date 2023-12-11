@@ -114,6 +114,7 @@ grid_collection_time
 ```
 
 ### Wind Forecast Entity
+Hourly forecast from 20:00 (UTC) on the current day to 20:00 (GMT) on day + 2
 
 Name - Wind Forecast\
 ID - sensor.national_grid_wind_forecast\
@@ -127,10 +128,54 @@ forecast:
 ```
 
 ### Wind Forecast Earliest Entity
+Hourly forecast from 20:00 (UTC) on the current day to 20:00 (GMT) on day + 2
+This is however, the first forecast obtained for this period, not the latest update
 
 Name - Wind Forecast Earlist\
 ID - sensor.national_grid_wind_forecast_earliest\
 State - Current hour earliest forecast\
+Attributes:
+```
+forecast:
+    - start_time: ...
+      generation: ...
+...
+```
+
+### Wind Forecast Now To Three Day Entity
+Thirty minute long term wind forecast - From now to three days ahead
+
+Name - Wind Forecast Now To Three Day\
+ID - sensor.national_grid_now_to_three_day_wind_forecast\
+State - None\
+Attributes:
+```
+forecast:
+    - start_time: ...
+      generation: ...
+...
+```
+
+### Wind Forecast Three To Seven Day Entity
+Thirty minute long term wind forecast - From three days ahead to seven days ahead
+
+Name - Wind Forecast Three To Seven Day\
+ID - sensor.national_grid_three_to_seven_day_wind_forecast\
+State - None\
+Attributes:
+```
+forecast:
+    - start_time: ...
+      generation: ...
+...
+```
+
+### Wind Forecast Seven To Fourteen Day Entity
+Three-hourly long term wind forecast - From seven days ahead to fourteen days ahead
+
+Name - Wind Forecast Seven To Fourteen Day\
+ID - sensor.national_grid_fourteen_day_wind_forecast\
+State - None\
 Attributes:
 ```
 forecast:

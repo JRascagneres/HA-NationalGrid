@@ -279,6 +279,27 @@ SENSORS_GENERATION = (
     ),
     NationalGridSensorEntityDescription(
         key=None,
+        name="Wind Forecast Now To Three Day",
+        unique_id="now_to_three_wind_forecast",
+        icon="mdi:wind-turbine",
+        extra_attributes_key="now_to_three_wind_forecast",
+    ),
+    NationalGridSensorEntityDescription(
+        key=None,
+        name="Wind Forecast Three To Seven Day",
+        unique_id="three_to_seven_wind_forecast",
+        icon="mdi:wind-turbine",
+        extra_attributes_key="three_to_seven_wind_forecast",
+    ),
+    NationalGridSensorEntityDescription(
+        key=None,
+        name="Wind Forecast Seven To Fourteen Day",
+        unique_id="fourteen_day_wind_forecast",
+        icon="mdi:wind-turbine",
+        extra_attributes_key="seven_to_fourteen_wind_forecast",
+    ),
+    NationalGridSensorEntityDescription(
+        key=None,
         name="Grid Generation",
         unique_id="grid_generation",
         icon="mdi:transmission-tower",
