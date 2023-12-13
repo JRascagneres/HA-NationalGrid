@@ -124,6 +124,8 @@ def get_data(
 
     three_day, fourteen_day = get_long_term_wind_forecast_eso_data(today_full)
 
+    solar, wind = get_long_term_embedded_wind_and_solar_forecast(today_full)
+
     return NationalGridData(
         sell_price=current_price,
         carbon_intensity=carbon_intensity,
@@ -133,6 +135,8 @@ def get_data(
         now_to_three_wind_forecast=three_day,
         fourteen_wind_forecast=fourteen_day,
         solar_forecast=solar_forecast,
+        fourteen_embedded_solar=solar,
+        fourteen_embedded_wind=wind,
         grid_generation=grid_generation,
         total_demand_mwh=total_demand_mwh,
         total_transfers_mwh=total_transfers_mwh,
@@ -462,6 +466,81 @@ def get_long_term_wind_forecast_eso_data(
     fourteen_day = NationalGridWindForecastLongTerm(forecast=fourteen_day_forecast)
 
     return (three_day, fourteen_day)
+
+
+def get_long_term_embedded_wind_and_solar_forecast(
+    now: datetime,
+) -> (NationalGridSolarForecast, NationalGridWindForecast):
+    url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=db6c038f-98af-4570-ab60-24d71ebd0ae5&limit=32000"
+    response = requests.get(url, timeout=20)
+    data = json.loads(response.content)
+
+    nearest_30_minutes = now + (now.min.replace(tzinfo=now.tzinfo) - now) % timedelta(
+        minutes=30
+    )
+    in_fourteen_days = nearest_30_minutes + timedelta(days=14)
+
+    solar_forecast = []
+    wind_forecast = []
+
+    current_solar_forecast = 0
+    current_wind_forecast = 0
+
+    all_records = data["result"]["records"]
+    for record in all_records:
+        formatted_datetime = datetime.strptime(
+            record["SETTLEMENT_DATE"], "%Y-%m-%dT%H:%M:%S"
+        ).replace(tzinfo=tz.UTC)
+
+        formatted_datetime = formatted_datetime + timedelta(
+            minutes=30 * (int(record["SETTLEMENT_PERIOD"]) - 1)
+        )
+
+        solar_forecast_val = int(record["EMBEDDED_SOLAR_FORECAST"])
+        wind_forecast_val = int(record["EMBEDDED_WIND_FORECAST"])
+
+        if formatted_datetime == nearest_30_minutes:
+            current_solar_forecast = solar_forecast_val
+            current_wind_forecast = wind_forecast_val
+
+        if (
+            formatted_datetime >= nearest_30_minutes
+            and formatted_datetime <= in_fourteen_days
+            and (
+                hour_minute_check(formatted_datetime, 0, 0)
+                or hour_minute_check(formatted_datetime, 2, 0)
+                or hour_minute_check(formatted_datetime, 4, 0)
+                or hour_minute_check(formatted_datetime, 6, 0)
+                or hour_minute_check(formatted_datetime, 8, 0)
+                or hour_minute_check(formatted_datetime, 10, 0)
+                or hour_minute_check(formatted_datetime, 12, 0)
+                or hour_minute_check(formatted_datetime, 14, 0)
+                or hour_minute_check(formatted_datetime, 16, 0)
+                or hour_minute_check(formatted_datetime, 18, 0)
+                or hour_minute_check(formatted_datetime, 20, 0)
+                or hour_minute_check(formatted_datetime, 22, 0)
+            )
+        ):
+            solar_forecast.append(
+                NationalGridSolarForecastItem(
+                    start_time=formatted_datetime, generation=solar_forecast_val
+                )
+            )
+
+            wind_forecast.append(
+                NationalGridWindForecastItem(
+                    start_time=formatted_datetime, generation=wind_forecast_val
+                )
+            )
+
+    solar = NationalGridSolarForecast(
+        current_value=current_solar_forecast, forecast=solar_forecast
+    )
+    wind = NationalGridWindForecast(
+        current_value=current_wind_forecast, forecast=wind_forecast
+    )
+
+    return (solar, wind)
 
 
 def get_carbon_intensity(now_utc_full: datetime) -> int:

@@ -170,6 +170,34 @@ forecast:
 ...
 ```
 
+### Embedded Wind Forecast Fourteen Day
+Two-hourly long term wind forecast - From now to fourteen days ahead
+
+Name - Embedded Wind Forecast Fourteen Day\
+ID - sensor.national_grid_embedded_wind_forecast_fourteen_day\
+State - None\
+Attributes:
+```
+forecast:
+    - start_time: ...
+      generation: ...
+...
+```
+
+### Solar Forecast Seven To Fourteen Day Entity
+Two-hourly long term solar forecast - From now to fourteen days ahead
+
+Name - Embedded Solar Forecast Fourteen Day\
+ID - sensor.national_grid_fourteen_day_solar_forecast\
+State - None\
+Attributes:
+```
+forecast:
+    - start_time: ...
+      generation: ...
+...
+```
+
 ## Uses / Examples
 This section outlines some graphs / views I have personally created with the data provided by the integration.
 
