@@ -156,24 +156,10 @@ forecast:
 ...
 ```
 
-### Wind Forecast Three To Seven Day Entity
-Thirty minute long term wind forecast - From three days ahead to seven days ahead
-
-Name - Wind Forecast Three To Seven Day\
-ID - sensor.national_grid_three_to_seven_day_wind_forecast\
-State - None\
-Attributes:
-```
-forecast:
-    - start_time: ...
-      generation: ...
-...
-```
-
 ### Wind Forecast Seven To Fourteen Day Entity
-Three-hourly long term wind forecast - From seven days ahead to fourteen days ahead
+Two-hourly long term wind forecast - From now to fourteen days ahead
 
-Name - Wind Forecast Seven To Fourteen Day\
+Name - Wind Forecast Fourteen Day\
 ID - sensor.national_grid_fourteen_day_wind_forecast\
 State - None\
 Attributes:

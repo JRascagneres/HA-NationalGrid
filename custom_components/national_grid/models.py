@@ -67,8 +67,7 @@ class NationalGridData(TypedDict):
     wind_forecast: NationalGridWindForecast
     wind_forecast_earliest: NationalGridWindForecast
     now_to_three_wind_forecast: NationalGridWindForecastLongTerm
-    three_to_seven_wind_forecast: NationalGridWindForecastLongTerm
-    seven_to_fourteen_wind_forecast: NationalGridWindForecastLongTerm
+    fourteen_wind_forecast: NationalGridWindForecastLongTerm
     solar_forecast: NationalGridSolarForecast
     grid_generation: NationalGridGeneration
     total_demand_mwh: int
