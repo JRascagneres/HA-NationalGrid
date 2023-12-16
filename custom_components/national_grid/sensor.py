@@ -301,6 +301,15 @@ SENSORS_GENERATION = (
         extra_attributes_key="fourteen_embedded_solar",
     ),
     NationalGridSensorEntityDescription(
+        key="three_embedded_solar.current_value",
+        name="Embedded Solar Forecast Three Day",
+        unique_id="three_day_embedded_solar",
+        native_unit_of_measurement="MW",
+        icon="mdi:solar-power-variant",
+        state_class=SensorStateClass.MEASUREMENT,
+        extra_attributes_key="three_embedded_solar",
+    ),
+    NationalGridSensorEntityDescription(
         key="fourteen_embedded_wind.current_value",
         name="Embedded Wind Forecast Fourteen Day",
         unique_id="fourteen_day_embedded_wind",
@@ -308,6 +317,15 @@ SENSORS_GENERATION = (
         icon="mdi:wind-turbine",
         state_class=SensorStateClass.MEASUREMENT,
         extra_attributes_key="fourteen_embedded_wind",
+    ),
+    NationalGridSensorEntityDescription(
+        key="three_embedded_wind.current_value",
+        name="Embedded Wind Forecast Three Day",
+        unique_id="three_day_embedded_wind",
+        native_unit_of_measurement="MW",
+        icon="mdi:wind-turbine",
+        state_class=SensorStateClass.MEASUREMENT,
+        extra_attributes_key="three_embedded_wind",
     ),
     NationalGridSensorEntityDescription(
         key=None,

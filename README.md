@@ -113,6 +113,20 @@ other_percentage_generation
 grid_collection_time
 ```
 
+### Day Ahead Solar Forecast
+Thirty minute day ahead solar forecast
+
+Name - Solar Forecast\
+ID - sensor.national_grid_solar_forecast\
+State - Current forecast value\
+Attributes:
+```
+forecast:
+    - start_time: ...
+      generation: ...
+...
+```
+
 ### Wind Forecast Entity
 Hourly forecast from 20:00 (UTC) on the current day to 20:00 (GMT) on day + 2
 
@@ -156,11 +170,25 @@ forecast:
 ...
 ```
 
-### Wind Forecast Seven To Fourteen Day Entity
+### Wind Forecast Fourteen Day Entity
 Two-hourly long term wind forecast - From now to fourteen days ahead
 
 Name - Wind Forecast Fourteen Day\
 ID - sensor.national_grid_fourteen_day_wind_forecast\
+State - None\
+Attributes:
+```
+forecast:
+    - start_time: ...
+      generation: ...
+...
+```
+
+### Embedded Wind Forecast Three Day
+Thirty minute long term wind forecast - From now to three days ahead
+
+Name - Embedded Wind Forecast Three Day\
+ID - sensor.national_grid_embedded_wind_forecast_three_day\
 State - None\
 Attributes:
 ```
@@ -184,11 +212,25 @@ forecast:
 ...
 ```
 
-### Solar Forecast Seven To Fourteen Day Entity
+### Embedded Solar Forecast Three Day
+Thirty minute long term wind forecast - From now to three days ahead
+
+Name - Embedded Solar Forecast Three Day\
+ID - sensor.national_grid_embedded_solar_forecast_three_day\
+State - None\
+Attributes:
+```
+forecast:
+    - start_time: ...
+      generation: ...
+...
+```
+
+### Embedded Solar Forecast Seven To Fourteen Day Entity
 Two-hourly long term solar forecast - From now to fourteen days ahead
 
 Name - Embedded Solar Forecast Fourteen Day\
-ID - sensor.national_grid_fourteen_day_solar_forecast\
+ID - sensor.national_grid_embedded_solar_forecast_fourteen_day\
 State - None\
 Attributes:
 ```
