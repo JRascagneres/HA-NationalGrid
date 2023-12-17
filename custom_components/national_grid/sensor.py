@@ -328,6 +328,15 @@ SENSORS_GENERATION = (
         extra_attributes_key="three_embedded_wind",
     ),
     NationalGridSensorEntityDescription(
+        key="grid_demand_day_ahead_forecast.current_value",
+        name="Grid Demand Day Ahead Forecast",
+        unique_id="grid_demand_day_ahead_forecast",
+        native_unit_of_measurement="MW",
+        icon="mdi:transmission-tower",
+        state_class=SensorStateClass.MEASUREMENT,
+        extra_attributes_key="grid_demand_day_ahead_forecast",
+    ),
+    NationalGridSensorEntityDescription(
         key=None,
         name="Grid Generation",
         unique_id="grid_generation",

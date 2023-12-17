@@ -189,9 +189,10 @@ Thirty minute long term wind forecast - From now to three days ahead
 
 Name - Embedded Wind Forecast Three Day\
 ID - sensor.national_grid_embedded_wind_forecast_three_day\
-State - None\
+State - Closest forecasted value to 'now'
 Attributes:
 ```
+current_value:
 forecast:
     - start_time: ...
       generation: ...
@@ -203,9 +204,10 @@ Two-hourly long term wind forecast - From now to fourteen days ahead
 
 Name - Embedded Wind Forecast Fourteen Day\
 ID - sensor.national_grid_embedded_wind_forecast_fourteen_day\
-State - None\
+State - Closest forecasted value to 'now'
 Attributes:
 ```
+current_value:
 forecast:
     - start_time: ...
       generation: ...
@@ -217,26 +219,44 @@ Thirty minute long term wind forecast - From now to three days ahead
 
 Name - Embedded Solar Forecast Three Day\
 ID - sensor.national_grid_embedded_solar_forecast_three_day\
-State - None\
+State - Closest forecasted value to 'now'
 Attributes:
 ```
+current_value:
 forecast:
     - start_time: ...
       generation: ...
 ...
 ```
 
-### Embedded Solar Forecast Seven To Fourteen Day Entity
+### Embedded Solar Forecast Fourteen Day Entity
 Two-hourly long term solar forecast - From now to fourteen days ahead
 
 Name - Embedded Solar Forecast Fourteen Day\
 ID - sensor.national_grid_embedded_solar_forecast_fourteen_day\
-State - None\
+State - Closest forecasted value to 'now'
 Attributes:
 ```
+current_value:
 forecast:
     - start_time: ...
       generation: ...
+...
+```
+
+### National Grid Grid Demand Day Ahead Forecast Entity
+Thirty minute day ahead demand forecast
+
+Name - Grid Demand Day Ahead Forecast
+ID - sensor.national_grid_grid_demand_day_ahead_forecast
+State - Closest forecasted value to 'now'
+Attributes:
+```
+current_value:
+forecast:
+    - start_time: ...
+      transmission_demand: ...
+      national_demand: ...
 ...
 ```
 

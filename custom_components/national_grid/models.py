@@ -60,6 +60,17 @@ class NationalGridSolarForecast(TypedDict):
     forecast: list[NationalGridSolarForecastItem]
 
 
+class NationalGridDemandForecastItem(TypedDict):
+    start_time: datetime
+    transmission_demand: int
+    national_demand: int
+
+
+class NationalGridDemandForecast(TypedDict):
+    current_value: int
+    forecast: list[NationalGridDemandForecastItem]
+
+
 class NationalGridData(TypedDict):
     sell_price: float
     carbon_intensity: int
@@ -74,5 +85,6 @@ class NationalGridData(TypedDict):
     three_embedded_wind: NationalGridWindForecast
     fourteen_embedded_wind: NationalGridWindForecast
     grid_generation: NationalGridGeneration
+    grid_demand_day_ahead_forecast: NationalGridDemandForecast
     total_demand_mwh: int
     total_transfers_mwh: int

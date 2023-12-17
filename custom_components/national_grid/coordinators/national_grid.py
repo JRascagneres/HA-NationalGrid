@@ -27,6 +27,8 @@ from ..models import (
     NationalGridWindForecast,
     NationalGridWindForecastLongTerm,
     NationalGridWindForecastItem,
+    NationalGridDemandForecastItem,
+    NationalGridDemandForecast,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -131,6 +133,8 @@ def get_data(
         wind,
     ) = get_long_term_embedded_wind_and_solar_forecast(today_full)
 
+    demand_day_ahead_forecast = get_demand_day_ahead_forecast(now_utc_full)
+
     return NationalGridData(
         sell_price=current_price,
         carbon_intensity=carbon_intensity,
@@ -145,6 +149,7 @@ def get_data(
         fourteen_embedded_wind=wind,
         three_embedded_wind=three_day_wind,
         grid_generation=grid_generation,
+        grid_demand_day_ahead_forecast=demand_day_ahead_forecast,
         total_demand_mwh=total_demand_mwh,
         total_transfers_mwh=total_transfers_mwh,
     )
@@ -383,6 +388,55 @@ def get_wind_data(today: str, tomorrow: str) -> NationalGridWindData:
         tomorrow_peak=tomorrow_peak,
         today_peak_time=today_peak_time,
         tomorrow_peak_time=tomorrow_peak_time,
+    )
+
+
+def get_demand_day_ahead_forecast(utc_now: datetime) -> NationalGridDemandForecast:
+    utc_now_formatted = utc_now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    two_days = (utc_now + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    nearest_30_minutes = utc_now + (
+        utc_now.min.replace(tzinfo=utc_now.tzinfo) - utc_now
+    ) % timedelta(minutes=30)
+
+    url = (
+        "https://data.elexon.co.uk/bmrs/api/v1/forecast/demand/day-ahead/latest?format=json&from="
+        + utc_now_formatted
+        + "&to="
+        + two_days
+        + "&boundary=N"
+    )
+
+    response = requests.get(url, timeout=10)
+    items = json.loads(response.content)["data"]
+
+    if len(items) == 0:
+        raise UnexpectedDataError(url)
+
+    current = 0
+    forecast = []
+
+    for item in items:
+        transmission_demand = item["transmissionSystemDemand"]
+        national_demand = item["nationalDemand"]
+        start_time_datetime = datetime.strptime(
+            item["startTime"], "%Y-%m-%dT%H:%M:%S%z"
+        )
+
+        if start_time_datetime == nearest_30_minutes:
+            current = national_demand
+
+        forecast.append(
+            NationalGridDemandForecastItem(
+                start_time=start_time_datetime,
+                transmission_demand=transmission_demand,
+                national_demand=national_demand,
+            )
+        )
+
+    return NationalGridDemandForecast(
+        current_value=current,
+        forecast=forecast,
     )
 
 
