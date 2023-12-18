@@ -71,12 +71,27 @@ class NationalGridDemandForecast(TypedDict):
     forecast: list[NationalGridDemandForecastItem]
 
 
+class DFSRequirementItem(TypedDict):
+    start_time: datetime
+    end_time: datetime
+    required_mw: int
+    requirement_type: str
+    despatch_type: str
+    participants_eligible: list[str]
+
+
+class DFSRequirements(TypedDict):
+    requirements: list[DFSRequirementItem]
+
+
 class NationalGridData(TypedDict):
     sell_price: float
     carbon_intensity: int
+
     wind_data: NationalGridWindData
     wind_forecast: NationalGridWindForecast
     wind_forecast_earliest: NationalGridWindForecast
+
     now_to_three_wind_forecast: NationalGridWindForecastLongTerm
     fourteen_wind_forecast: NationalGridWindForecastLongTerm
     solar_forecast: NationalGridSolarForecast
@@ -84,7 +99,11 @@ class NationalGridData(TypedDict):
     fourteen_embedded_solar: NationalGridSolarForecast
     three_embedded_wind: NationalGridWindForecast
     fourteen_embedded_wind: NationalGridWindForecast
+
     grid_generation: NationalGridGeneration
+
     grid_demand_day_ahead_forecast: NationalGridDemandForecast
     total_demand_mwh: int
     total_transfers_mwh: int
+
+    dfs_requirements: DFSRequirements

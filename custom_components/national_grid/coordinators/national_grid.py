@@ -29,6 +29,8 @@ from ..models import (
     NationalGridWindForecastItem,
     NationalGridDemandForecastItem,
     NationalGridDemandForecast,
+    DFSRequirements,
+    DFSRequirementItem,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -133,7 +135,16 @@ def get_data(
         wind,
     ) = get_long_term_embedded_wind_and_solar_forecast(today_full)
 
-    demand_day_ahead_forecast = get_demand_day_ahead_forecast(now_utc_full)
+    demand_day_ahead_forecast = obtain_data_with_fallback(
+        current_data,
+        "grid_demand_day_ahead_forecast",
+        get_demand_day_ahead_forecast,
+        now_utc_full,
+    )
+
+    dfs_requirements = obtain_data_with_fallback(
+        current_data, "dfs_requirements", get_dfs_requirements
+    )
 
     return NationalGridData(
         sell_price=current_price,
@@ -144,14 +155,15 @@ def get_data(
         now_to_three_wind_forecast=three_day,
         fourteen_wind_forecast=fourteen_day,
         solar_forecast=solar_forecast,
-        fourteen_embedded_solar=solar,
         three_embedded_solar=three_day_solar,
-        fourteen_embedded_wind=wind,
+        fourteen_embedded_solar=solar,
         three_embedded_wind=three_day_wind,
+        fourteen_embedded_wind=wind,
         grid_generation=grid_generation,
         grid_demand_day_ahead_forecast=demand_day_ahead_forecast,
         total_demand_mwh=total_demand_mwh,
         total_transfers_mwh=total_transfers_mwh,
+        dfs_requirements=dfs_requirements,
     )
 
 
@@ -634,6 +646,41 @@ def get_long_term_embedded_wind_and_solar_forecast(
     )
 
     return (three_day_solar, solar, three_day_wind, wind)
+
+
+def get_dfs_requirements() -> DFSRequirements:
+    url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=7914dd99-fe1c-41ba-9989-5784531c58bb&limit=15&sort=_id%20desc"
+    response = requests.get(url, timeout=20)
+    data = json.loads(response.content)
+
+    all_requirements = []
+
+    all_records = data["result"]["records"]
+    for record in all_records:
+        participants_eligible = record["Participant Bids Eligible"].split(",")
+
+        start_time = datetime.strptime(
+            record["Delivery Date"] + "T" + record["From"], "%Y-%m-%dT%H:%M:%S"
+        ).replace(tzinfo=tz.UTC)
+
+        end_time = datetime.strptime(
+            record["Delivery Date"] + "T" + record["To"], "%Y-%m-%dT%H:%M:%S"
+        ).replace(tzinfo=tz.UTC)
+
+        all_requirements.append(
+            DFSRequirementItem(
+                start_time=start_time,
+                end_time=end_time,
+                required_mw=record["DFS Required MW"],
+                requirement_type=record["Service Requirement Type"],
+                despatch_type=record["Despatch Type"],
+                participants_eligible=participants_eligible,
+            )
+        )
+
+    dfs_requirements = DFSRequirements(requirements=all_requirements)
+
+    return dfs_requirements
 
 
 def get_carbon_intensity(now_utc_full: datetime) -> int:

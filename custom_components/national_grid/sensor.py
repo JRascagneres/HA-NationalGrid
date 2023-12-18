@@ -338,6 +338,13 @@ SENSORS_GENERATION = (
     ),
     NationalGridSensorEntityDescription(
         key=None,
+        name="DFS Requirements",
+        unique_id="dfs_requirements",
+        icon="mdi:leaf",
+        extra_attributes_key="dfs_requirements",
+    ),
+    NationalGridSensorEntityDescription(
+        key=None,
         name="Grid Generation",
         unique_id="grid_generation",
         icon="mdi:transmission-tower",
