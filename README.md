@@ -260,6 +260,36 @@ forecast:
 ...
 ```
 
+### National Grid Grid Demand Three Day Forecast Entity
+Thirty minute three day demand forecast
+
+Name - Grid Demand Three Day Forecast
+ID - sensor.national_grid_grid_demand_three_day_forecast
+State - Closest forecasted value to 'now'
+Attributes:
+```
+current_value:
+forecast:
+    - start_time: ...
+      national_demand: ...
+...
+```
+
+### National Grid Grid Demand Fourteen Day Forecast Entity
+Two hourly fourteen day demand forecast
+
+Name - Grid Demand Fourteen Day Forecast
+ID - sensor.national_grid_grid_demand_fourteen_day_forecast
+State - Closest forecasted value to 'now'
+Attributes:
+```
+current_value:
+forecast:
+    - start_time: ...
+      national_demand: ...
+...
+```
+
 ### National Grid DFS Requirements Entity
 National Grid DFS Requirements - Shows last 15 only
 

@@ -29,6 +29,8 @@ from ..models import (
     NationalGridWindForecastItem,
     NationalGridDemandForecastItem,
     NationalGridDemandForecast,
+    NationalGridDemandDayAheadForecast,
+    NationalGridDemandDayAheadForecastItem,
     DFSRequirements,
     DFSRequirementItem,
 )
@@ -146,6 +148,10 @@ def get_data(
         current_data, "dfs_requirements", get_dfs_requirements
     )
 
+    three_day_demand, fourteen_day_demand = get_demand_forecast(
+        today_full, demand_day_ahead_forecast
+    )
+
     return NationalGridData(
         sell_price=current_price,
         carbon_intensity=carbon_intensity,
@@ -161,6 +167,8 @@ def get_data(
         fourteen_embedded_wind=wind,
         grid_generation=grid_generation,
         grid_demand_day_ahead_forecast=demand_day_ahead_forecast,
+        grid_demand_three_day_forecast=three_day_demand,
+        grid_demand_fourteen_day_forecast=fourteen_day_demand,
         total_demand_mwh=total_demand_mwh,
         total_transfers_mwh=total_transfers_mwh,
         dfs_requirements=dfs_requirements,
@@ -403,7 +411,9 @@ def get_wind_data(today: str, tomorrow: str) -> NationalGridWindData:
     )
 
 
-def get_demand_day_ahead_forecast(utc_now: datetime) -> NationalGridDemandForecast:
+def get_demand_day_ahead_forecast(
+    utc_now: datetime,
+) -> NationalGridDemandDayAheadForecast:
     utc_now_formatted = utc_now.strftime("%Y-%m-%dT%H:%M:%SZ")
     two_days = (utc_now + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -439,14 +449,14 @@ def get_demand_day_ahead_forecast(utc_now: datetime) -> NationalGridDemandForeca
             current = national_demand
 
         forecast.append(
-            NationalGridDemandForecastItem(
+            NationalGridDemandDayAheadForecastItem(
                 start_time=start_time_datetime,
                 transmission_demand=transmission_demand,
                 national_demand=national_demand,
             )
         )
 
-    return NationalGridDemandForecast(
+    return NationalGridDemandDayAheadForecast(
         current_value=current,
         forecast=forecast,
     )
@@ -681,6 +691,120 @@ def get_dfs_requirements() -> DFSRequirements:
     dfs_requirements = DFSRequirements(requirements=all_requirements)
 
     return dfs_requirements
+
+
+def get_demand_forecast(
+    now: datetime, day_ahead_forecast: NationalGridDemandDayAheadForecast
+) -> (NationalGridDemandForecast, NationalGridDemandForecast):
+    url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=7c0411cd-2714-4bb5-a408-adb065edf34d&limit=1000"
+    response = requests.get(url, timeout=20)
+    data = json.loads(response.content)
+
+    nearest_30_minutes = now + (now.min.replace(tzinfo=now.tzinfo) - now) % timedelta(
+        minutes=30
+    )
+    in_three_days = nearest_30_minutes + timedelta(days=3)
+    in_fourteen_days = nearest_30_minutes + timedelta(days=14)
+
+    three_day_forecast = []
+    fourteen_day_forecast = []
+
+    current_forecast = 0
+
+    all_records = data["result"]["records"]
+
+    first_record = all_records[0]
+    first_record_datetime = datetime.strptime(
+        first_record["GDATETIME"], "%Y-%m-%dT%H:%M:%S"
+    ).replace(tzinfo=tz.UTC)
+
+    # So this is a bit annoying, I want to include the first day too so we pull that from the other endpoint
+    for item in day_ahead_forecast["forecast"]:
+        if item["start_time"] < first_record_datetime:
+            three_day_forecast.append(
+                NationalGridDemandForecastItem(
+                    start_time=item["start_time"],
+                    national_demand=item["national_demand"],
+                )
+            )
+
+            if (
+                hour_minute_check(item["start_time"], 0, 0)
+                or hour_minute_check(item["start_time"], 2, 0)
+                or hour_minute_check(item["start_time"], 4, 0)
+                or hour_minute_check(item["start_time"], 6, 0)
+                or hour_minute_check(item["start_time"], 8, 0)
+                or hour_minute_check(item["start_time"], 10, 0)
+                or hour_minute_check(item["start_time"], 12, 0)
+                or hour_minute_check(item["start_time"], 14, 0)
+                or hour_minute_check(item["start_time"], 16, 0)
+                or hour_minute_check(item["start_time"], 18, 0)
+                or hour_minute_check(item["start_time"], 20, 0)
+                or hour_minute_check(item["start_time"], 22, 0)
+            ):
+                fourteen_day_forecast.append(
+                    NationalGridDemandForecastItem(
+                        start_time=item["start_time"],
+                        national_demand=item["national_demand"],
+                    )
+                )
+
+    for record in all_records:
+        formatted_datetime = datetime.strptime(
+            record["GDATETIME"], "%Y-%m-%dT%H:%M:%S"
+        ).replace(tzinfo=tz.UTC)
+
+        if (
+            formatted_datetime >= nearest_30_minutes
+            and formatted_datetime <= in_three_days
+        ):
+            three_day_forecast.append(
+                NationalGridDemandForecastItem(
+                    start_time=formatted_datetime,
+                    national_demand=record["NATIONALDEMAND"],
+                )
+            )
+
+        if (
+            formatted_datetime >= nearest_30_minutes
+            and formatted_datetime <= in_fourteen_days
+            and (
+                hour_minute_check(formatted_datetime, 0, 0)
+                or hour_minute_check(formatted_datetime, 2, 0)
+                or hour_minute_check(formatted_datetime, 4, 0)
+                or hour_minute_check(formatted_datetime, 6, 0)
+                or hour_minute_check(formatted_datetime, 8, 0)
+                or hour_minute_check(formatted_datetime, 10, 0)
+                or hour_minute_check(formatted_datetime, 12, 0)
+                or hour_minute_check(formatted_datetime, 14, 0)
+                or hour_minute_check(formatted_datetime, 16, 0)
+                or hour_minute_check(formatted_datetime, 18, 0)
+                or hour_minute_check(formatted_datetime, 20, 0)
+                or hour_minute_check(formatted_datetime, 22, 0)
+            )
+        ):
+            fourteen_day_forecast.append(
+                NationalGridDemandForecastItem(
+                    start_time=formatted_datetime,
+                    national_demand=record["NATIONALDEMAND"],
+                )
+            )
+
+    for item in three_day_forecast:
+        if item["start_time"] == nearest_30_minutes:
+            current_forecast = item["national_demand"]
+
+    three_day = NationalGridDemandForecast(
+        current_value=current_forecast,
+        forecast=three_day_forecast,
+    )
+
+    fourteen_day = NationalGridDemandForecast(
+        current_value=current_forecast,
+        forecast=fourteen_day_forecast,
+    )
+
+    return (three_day, fourteen_day)
 
 
 def get_carbon_intensity(now_utc_full: datetime) -> int:
