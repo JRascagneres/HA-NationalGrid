@@ -659,7 +659,7 @@ def get_long_term_embedded_wind_and_solar_forecast(
 
 
 def get_dfs_requirements() -> DFSRequirements:
-    url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=7914dd99-fe1c-41ba-9989-5784531c58bb&limit=15&sort=_id%20desc"
+    url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=7914dd99-fe1c-41ba-9989-5784531c58bb&limit=15&sort=_id%20asc"
     response = requests.get(url, timeout=20)
     data = json.loads(response.content)
 
