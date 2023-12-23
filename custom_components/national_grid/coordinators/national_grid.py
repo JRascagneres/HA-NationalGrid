@@ -17,7 +17,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from ..const import API_KEY, DOMAIN, API_KEY_PROVIDED
-from ..errors import InvalidAuthError, UnexpectedDataError
+from ..errors import InvalidAuthError, UnexpectedDataError, UnexpectedStatusCode
 from ..models import (
     NationalGridData,
     NationalGridGeneration,
@@ -128,14 +128,37 @@ def get_data(
         current_data, "transfers_mwh", get_transfers, grid_generation
     )
 
-    three_day, fourteen_day = get_long_term_wind_forecast_eso_data(today_full)
+    long_term_wind_forecast = obtain_data_with_fallback(
+        current_data,
+        "long_term_wind_forecast",
+        get_long_term_wind_forecast_eso_data,
+        today_full,
+    )
 
-    (
-        three_day_solar,
-        solar,
-        three_day_wind,
-        wind,
-    ) = get_long_term_embedded_wind_and_solar_forecast(today_full)
+    if long_term_wind_forecast is not None:
+        three_day = long_term_wind_forecast[0]
+        fourteen_day = long_term_wind_forecast[1]
+    else:
+        three_day = None
+        fourteen_day = None
+
+    long_term_embedded_wind_and_solar_forecast = obtain_data_with_fallback(
+        current_data,
+        "long_term_embedded_wind_and_solar_forecast",
+        get_long_term_embedded_wind_and_solar_forecast,
+        today_full,
+    )
+
+    if long_term_embedded_wind_and_solar_forecast is not None:
+        three_day_solar = long_term_embedded_wind_and_solar_forecast[0]
+        solar = long_term_embedded_wind_and_solar_forecast[1]
+        three_day_wind = long_term_embedded_wind_and_solar_forecast[2]
+        wind = long_term_embedded_wind_and_solar_forecast[3]
+    else:
+        three_day_solar = None
+        solar = None
+        three_day_wind = None
+        wind = None
 
     demand_day_ahead_forecast = obtain_data_with_fallback(
         current_data,
@@ -160,11 +183,13 @@ def get_data(
         wind_forecast_earliest=wind_forecast_earliest,
         now_to_three_wind_forecast=three_day,
         fourteen_wind_forecast=fourteen_day,
+        long_term_wind_forecast=long_term_wind_forecast,
         solar_forecast=solar_forecast,
         three_embedded_solar=three_day_solar,
         fourteen_embedded_solar=solar,
         three_embedded_wind=three_day_wind,
         fourteen_embedded_wind=wind,
+        long_term_embedded_wind_and_solar_forecast=long_term_embedded_wind_and_solar_forecast,
         grid_generation=grid_generation,
         grid_demand_day_ahead_forecast=demand_day_ahead_forecast,
         grid_demand_three_day_forecast=three_day_demand,
@@ -468,6 +493,10 @@ def get_national_grid_data(today_utc: str, now_utc: datetime) -> dict[str, Any]:
 
     url = "https://data.nationalgrideso.com/backend/dataset/7a12172a-939c-404c-b581-a6128b74f588/resource/177f6fa4-ae49-4182-81ea-0c6b35f26ca6/download/demanddataupdate.csv"
     response = requests.get(url, timeout=20)
+
+    if response.status_code != 200:
+        raise UnexpectedStatusCode(response.status_code)
+
     response_data = response.content.decode("utf-8")
     reader = csv.DictReader(io.StringIO(response_data))
     for row in reader:
@@ -485,6 +514,10 @@ def get_long_term_wind_forecast_eso_data(
 ) -> (NationalGridWindForecastLongTerm, NationalGridWindForecastLongTerm,):
     url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=93c3048e-1dab-4057-a2a9-417540583929&limit=32000"
     response = requests.get(url, timeout=20)
+
+    if response.status_code != 200:
+        raise UnexpectedStatusCode(response.status_code)
+
     data = json.loads(response.content)
 
     # Get 7 day forecast. Will just do now + 7 days
@@ -561,6 +594,10 @@ def get_long_term_embedded_wind_and_solar_forecast(
 ):
     url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=db6c038f-98af-4570-ab60-24d71ebd0ae5&limit=32000"
     response = requests.get(url, timeout=20)
+
+    if response.status_code != 200:
+        raise UnexpectedStatusCode(response.status_code)
+
     data = json.loads(response.content)
 
     nearest_30_minutes = now + (now.min.replace(tzinfo=now.tzinfo) - now) % timedelta(
@@ -661,6 +698,10 @@ def get_long_term_embedded_wind_and_solar_forecast(
 def get_dfs_requirements() -> DFSRequirements:
     url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=7914dd99-fe1c-41ba-9989-5784531c58bb&limit=15&sort=_id%20asc"
     response = requests.get(url, timeout=20)
+
+    if response.status_code != 200:
+        raise UnexpectedStatusCode(response.status_code)
+
     data = json.loads(response.content)
 
     all_requirements = []
@@ -698,6 +739,10 @@ def get_demand_forecast(
 ) -> (NationalGridDemandForecast, NationalGridDemandForecast):
     url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=7c0411cd-2714-4bb5-a408-adb065edf34d&limit=1000"
     response = requests.get(url, timeout=20)
+
+    if response.status_code != 200:
+        raise UnexpectedStatusCode(response.status_code)
+
     data = json.loads(response.content)
 
     nearest_30_minutes = now + (now.min.replace(tzinfo=now.tzinfo) - now) % timedelta(
@@ -1009,6 +1054,9 @@ def get_generation_combined(api_key: str, now_utc_full: datetime, today_utc: str
 
 # Just adds up all of the generation and transfers
 def get_demand(grid_generation: NationalGridGeneration):
+    if grid_generation is None:
+        raise UnexpectedDataError("grid generation None")
+
     return (
         grid_generation["gas_mwh"]
         + grid_generation["oil_mwh"]
@@ -1030,6 +1078,9 @@ def get_demand(grid_generation: NationalGridGeneration):
 
 # Just adds up all of the transfers from interconnectors and storage
 def get_transfers(grid_generation: NationalGridGeneration):
+    if grid_generation is None:
+        raise UnexpectedDataError("grid generation None")
+
     return (
         grid_generation["france_mwh"]
         + grid_generation["ireland_mwh"]
@@ -1094,6 +1145,14 @@ def obtain_data_with_fallback(current_data, key, func, *args):
         return get_data_if_exists(current_data, key)
     except InvalidAuthError as e:
         raise e
+    except UnexpectedStatusCode as e:
+        argument_str = ""
+        if len(e.args) != 0:
+            argument_str = e.args[0]
+        if type(argument_str) is not str:
+            argument_str = str(argument_str)
+        _LOGGER.warning("Unexpected status code" + argument_str)
+        return get_data_if_exists(current_data, key)
     except Exception as e:  # pylint: disable=broad-except
         _LOGGER.exception("Failed to obtain data")
         return get_data_if_exists(current_data, key)

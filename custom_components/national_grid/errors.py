@@ -11,3 +11,7 @@ class InvalidAuthError(NationalGridError):
 
 class UnexpectedDataError(NationalGridError):
     """Unexpected data"""
+
+
+class UnexpectedStatusCode(NationalGridError):
+    """Unexpected status code"""

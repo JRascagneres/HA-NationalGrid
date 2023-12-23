@@ -104,11 +104,25 @@ class NationalGridData(TypedDict):
 
     now_to_three_wind_forecast: NationalGridWindForecastLongTerm
     fourteen_wind_forecast: NationalGridWindForecastLongTerm
+    long_term_wind_forecast: tuple[
+        NationalGridWindForecastLongTerm,
+        NationalGridWindForecastLongTerm,
+    ]
+
     solar_forecast: NationalGridSolarForecast
+
     three_embedded_solar: NationalGridSolarForecast
     fourteen_embedded_solar: NationalGridSolarForecast
+
     three_embedded_wind: NationalGridWindForecast
     fourteen_embedded_wind: NationalGridWindForecast
+
+    long_term_embedded_wind_and_solar_forecast: tuple[
+        NationalGridSolarForecast,
+        NationalGridSolarForecast,
+        NationalGridWindForecast,
+        NationalGridWindForecast,
+    ]
 
     grid_generation: NationalGridGeneration
 
