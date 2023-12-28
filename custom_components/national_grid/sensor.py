@@ -252,6 +252,14 @@ SENSORS_GENERATION = (
         state_class=SensorStateClass.MEASUREMENT,
     ),
     NationalGridSensorEntityDescription(
+        key="grid_generation.denmark_mw",
+        name="Grid Generation Denmark MW",
+        unique_id="grid_generation_denmark_mw",
+        native_unit_of_measurement="MW",
+        icon="mdi:transmission-tower",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    NationalGridSensorEntityDescription(
         key="grid_generation.total_generation_mwh",
         name="Grid Generation Total MW",
         unique_id="grid_generation_total_generation_mwh",

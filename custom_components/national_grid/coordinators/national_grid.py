@@ -912,6 +912,7 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
         netherlands_mwh=0,
         belgium_mwh=0,
         norway_mwh=0,
+        denmark_mw=0,
         total_generation_mwh=0,
         fossil_fuel_percentage_generation=0,
         renewable_percentage_generation=0,
@@ -955,6 +956,8 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
                 national_grid_generation["belgium_mwh"] = generation
             elif fuelType == "INTNSL":
                 national_grid_generation["norway_mwh"] = generation
+            elif fuelType == "INTVKL":
+                national_grid_generation["denmark_mw"] = generation
 
     # Do a quick check for data validity
     if (
@@ -1073,6 +1076,7 @@ def get_demand(grid_generation: NationalGridGeneration):
         + grid_generation["netherlands_mwh"]
         + grid_generation["belgium_mwh"]
         + grid_generation["norway_mwh"]
+        + grid_generation["denmark_mw"]
     )
 
 
@@ -1087,6 +1091,7 @@ def get_transfers(grid_generation: NationalGridGeneration):
         + grid_generation["netherlands_mwh"]
         + grid_generation["belgium_mwh"]
         + grid_generation["norway_mwh"]
+        + grid_generation["denmark_mw"]
         + grid_generation["pumped_storage_mwh"]
     )
 
