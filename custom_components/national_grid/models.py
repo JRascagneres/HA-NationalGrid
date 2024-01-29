@@ -128,8 +128,13 @@ class NationalGridData(TypedDict):
     grid_generation: NationalGridGeneration
 
     grid_demand_day_ahead_forecast: NationalGridDemandDayAheadForecast
+
     grid_demand_three_day_forecast: NationalGridDemandForecast
     grid_demand_fourteen_day_forecast: NationalGridDemandForecast
+    three_day_demand_and_fourteen_day_demand: tuple[
+        NationalGridDemandForecast,
+        NationalGridDemandForecast,
+    ]
 
     total_demand_mwh: int
     total_transfers_mwh: int

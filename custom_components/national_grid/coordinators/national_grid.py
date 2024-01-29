@@ -171,9 +171,20 @@ def get_data(
         current_data, "dfs_requirements", get_dfs_requirements
     )
 
-    three_day_demand, fourteen_day_demand = get_demand_forecast(
-        today_full, demand_day_ahead_forecast
+    three_day_demand_and_fourteen_day_demand = obtain_data_with_fallback(
+        current_data,
+        "three_day_demand_and_fourteen_day_demand",
+        get_demand_forecast,
+        today_full,
+        demand_day_ahead_forecast,
     )
+
+    if three_day_demand_and_fourteen_day_demand is not None:
+        three_day_demand = three_day_demand_and_fourteen_day_demand[0]
+        fourteen_day_demand = three_day_demand_and_fourteen_day_demand[1]
+    else:
+        three_day_demand = None
+        fourteen_day_demand = None
 
     return NationalGridData(
         sell_price=current_price,
@@ -194,6 +205,7 @@ def get_data(
         grid_demand_day_ahead_forecast=demand_day_ahead_forecast,
         grid_demand_three_day_forecast=three_day_demand,
         grid_demand_fourteen_day_forecast=fourteen_day_demand,
+        three_day_demand_and_fourteen_day_demand=three_day_demand_and_fourteen_day_demand,
         total_demand_mwh=total_demand_mwh,
         total_transfers_mwh=total_transfers_mwh,
         dfs_requirements=dfs_requirements,
@@ -495,7 +507,9 @@ def get_national_grid_data(today_utc: str, now_utc: datetime) -> dict[str, Any]:
     response = requests.get(url, timeout=20)
 
     if response.status_code != 200:
-        raise UnexpectedStatusCode(response.status_code)
+        raise UnexpectedStatusCode(
+            url + " - " + "get_national_grid_data" + " - " + str(response.status_code)
+        )
 
     response_data = response.content.decode("utf-8")
     reader = csv.DictReader(io.StringIO(response_data))
@@ -516,7 +530,9 @@ def get_long_term_wind_forecast_eso_data(
     response = requests.get(url, timeout=20)
 
     if response.status_code != 200:
-        raise UnexpectedStatusCode(response.status_code)
+        raise UnexpectedStatusCode(
+            url + " - " + "get_long_term_wind_forecast_eso_data" + " - " + str(response.status_code)
+        )
 
     data = json.loads(response.content)
 
@@ -596,7 +612,9 @@ def get_long_term_embedded_wind_and_solar_forecast(
     response = requests.get(url, timeout=20)
 
     if response.status_code != 200:
-        raise UnexpectedStatusCode(response.status_code)
+        raise UnexpectedStatusCode(
+            url + " - " + "get_long_term_embedded_wind_and_solar_forecast" + " - " + str(response.status_code)
+        )
 
     data = json.loads(response.content)
 
@@ -700,7 +718,9 @@ def get_dfs_requirements() -> DFSRequirements:
     response = requests.get(url, timeout=20)
 
     if response.status_code != 200:
-        raise UnexpectedStatusCode(response.status_code)
+        raise UnexpectedStatusCode(
+            url + " - " + "get_dfs_requirements" + " - " + str(response.status_code)
+        )
 
     data = json.loads(response.content)
 
@@ -741,7 +761,9 @@ def get_demand_forecast(
     response = requests.get(url, timeout=20)
 
     if response.status_code != 200:
-        raise UnexpectedStatusCode(response.status_code)
+        raise UnexpectedStatusCode(
+            url + " - " + "get_demand_forecast" + " - " + str(response.status_code)
+        )
 
     data = json.loads(response.content)
 
@@ -1156,7 +1178,7 @@ def obtain_data_with_fallback(current_data, key, func, *args):
             argument_str = e.args[0]
         if type(argument_str) is not str:
             argument_str = str(argument_str)
-        _LOGGER.warning("Unexpected status code" + argument_str)
+        _LOGGER.warning("Unexpected status code " + argument_str)
         return get_data_if_exists(current_data, key)
     except Exception as e:  # pylint: disable=broad-except
         _LOGGER.exception("Failed to obtain data")
