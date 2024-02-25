@@ -48,6 +48,7 @@ Then follow the same steps that are using to setup most integrations:
 | Name | ID | Description |
 | ---- | -- | ----------- |
 | National Grid Current Sell Price (optional) | sensor.national_grid_current_sell_price | Current balancing price of Grid |
+| National Grid Current Grid Frequency | sensor.national_grid_current_grid_frequency | Current Grid Frequency (every 5 minutes) |
 | National Grid Today Wind Peak | sensor.national_grid_today_wind_peak | Estimated peak wind production of Grid today |
 | National Grid Today Wind Peak Time | sensor.national_grid_today_wind_peak_time | Estimated time of peak wind production of Grid today |
 | National Grid Tomorrow Wind Peak | sensor.national_grid_tomorrow_wind_peak | Estimated peak wind production of Grid tomorrow |

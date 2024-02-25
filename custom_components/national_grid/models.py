@@ -99,6 +99,8 @@ class NationalGridData(TypedDict):
     sell_price: float
     carbon_intensity: int
 
+    grid_frequency: float
+
     wind_data: NationalGridWindData
     wind_forecast: NationalGridWindForecast
     wind_forecast_earliest: NationalGridWindForecast

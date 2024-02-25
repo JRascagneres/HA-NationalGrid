@@ -2,17 +2,12 @@ from __future__ import annotations
 
 import logging
 
-from dateutil import tz
-
-from .coordinators.national_grid import (
-    NationalGridCoordinator,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.typing import ConfigType
 
-from .const import API_KEY, DATA_CLIENT, DOMAIN, API_KEY_PROVIDED
+from .const import API_KEY_PROVIDED, DATA_CLIENT, DOMAIN
+from .coordinators.national_grid import NationalGridCoordinator
 
 PLATFORMS = [Platform.SENSOR]
 _LOGGER = logging.getLogger(__name__)

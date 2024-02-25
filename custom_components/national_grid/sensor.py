@@ -1,6 +1,6 @@
-import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+import logging
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -12,13 +12,12 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType
-from homeassistant.helpers.entity import DeviceInfo, Entity, EntityDescription
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import NationalGridCoordinator
-from .const import DATA_CLIENT, DOMAIN, API_KEY_PROVIDED
+from .const import API_KEY_PROVIDED, DATA_CLIENT, DOMAIN
 
 SCAN_INTERVAL = timedelta(minutes=5)
 _LOGGER = logging.getLogger(__name__)
@@ -54,6 +53,14 @@ API_SENSORS = (
 )
 
 SENSORS = (
+    NationalGridSensorEntityDescription(
+        key="grid_frequency",
+        name="Current Grid Frequency",
+        unique_id="grid_frequency",
+        native_unit_of_measurement="Hz",
+        icon="mdi:sine-wave",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
     NationalGridSensorEntityDescription(
         key="carbon_intensity",
         name="Current Carbon Intensity",

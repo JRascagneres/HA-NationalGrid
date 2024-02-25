@@ -1,46 +1,48 @@
+from collections import OrderedDict
 import csv
+from datetime import datetime, timedelta
 import io
 import json
 import logging
-from collections import OrderedDict
-from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any
 
-import requests
-import xmltodict
 from _collections_abc import Mapping
 from dateutil import tz
+import requests
+import xmltodict
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from ..const import API_KEY, DOMAIN, API_KEY_PROVIDED
+from ..const import API_KEY, API_KEY_PROVIDED, DOMAIN
 from ..errors import InvalidAuthError, UnexpectedDataError, UnexpectedStatusCode
 from ..models import (
+    DFSRequirementItem,
+    DFSRequirements,
     NationalGridData,
+    NationalGridDemandDayAheadForecast,
+    NationalGridDemandDayAheadForecastItem,
+    NationalGridDemandForecast,
+    NationalGridDemandForecastItem,
     NationalGridGeneration,
     NationalGridSolarForecast,
     NationalGridSolarForecastItem,
     NationalGridWindData,
     NationalGridWindForecast,
-    NationalGridWindForecastLongTerm,
     NationalGridWindForecastItem,
-    NationalGridDemandForecastItem,
-    NationalGridDemandForecast,
-    NationalGridDemandDayAheadForecast,
-    NationalGridDemandDayAheadForecastItem,
-    DFSRequirements,
-    DFSRequirementItem,
+    NationalGridWindForecastLongTerm,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class NationalGridCoordinator(DataUpdateCoordinator[NationalGridData]):
+    """National Grid Data Coordinator."""
+
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Initialize"""
+        """Initialize."""
         super().__init__(
             hass, _LOGGER, name=DOMAIN, update_interval=timedelta(minutes=5)
         )
@@ -48,6 +50,7 @@ class NationalGridCoordinator(DataUpdateCoordinator[NationalGridData]):
 
     @property
     def entry_id(self) -> str:
+        """Return entry id."""
         return self._entry.entry_id
 
     async def _async_update_data(self) -> NationalGridData:
@@ -55,8 +58,8 @@ class NationalGridCoordinator(DataUpdateCoordinator[NationalGridData]):
             data = await self.hass.async_add_executor_job(
                 get_data, self.hass, self._entry.data, self.data
             )
-        except:
-            raise Exception()  # pylint: disable=broad-exception-raised
+        except:  # noqa: E722
+            raise Exception()  # pylint: disable=broad-exception-raised  # noqa: B904
 
         return data
 
@@ -64,6 +67,7 @@ class NationalGridCoordinator(DataUpdateCoordinator[NationalGridData]):
 def get_data(
     hass: HomeAssistant, config: Mapping[str, Any], current_data: NationalGridData
 ) -> NationalGridData:
+    """Get data."""
     api_key = config[API_KEY]
 
     today_utc = dt_util.utcnow().strftime("%Y-%m-%d")
@@ -88,6 +92,10 @@ def get_data(
             api_key,
             now_utc_full,
         )
+
+    current_grid_frequency = obtain_data_with_fallback(
+        current_data, "grid_frequency", get_current_frequency, api_key, now_utc_full
+    )
 
     wind_forecast = obtain_data_with_fallback(
         current_data,
@@ -189,6 +197,7 @@ def get_data(
     return NationalGridData(
         sell_price=current_price,
         carbon_intensity=carbon_intensity,
+        grid_frequency=current_grid_frequency,
         wind_data=wind_data,
         wind_forecast=wind_forecast,
         wind_forecast_earliest=wind_forecast_earliest,
@@ -213,6 +222,7 @@ def get_data(
 
 
 def get_data_if_exists(data, key: str):
+    """Get data if exists."""
     if data is None:
         _LOGGER.error("Previous data is None, returning None")
         return None
@@ -224,6 +234,7 @@ def get_data_if_exists(data, key: str):
 
 
 def get_hourly_wind_forecast(now_utc: datetime) -> NationalGridWindForecast:
+    """Get hourly wind forecast."""
     # Need to calculate start. We want data from 8pm on current day to day+2 8pm... however, this is calculated every so often.
     # This means that day + 2 isn't calculated until 03:30 GMT
 
@@ -283,6 +294,7 @@ def get_hourly_wind_forecast(now_utc: datetime) -> NationalGridWindForecast:
 
 
 def get_hourly_wind_forecast_earliest(now_utc: datetime) -> NationalGridWindForecast:
+    """Get hourly wind forecast."""
     # Need to calculate start. We want data from 8pm on current day to day+2 8pm... however, this is calculated every so often.
     # This means that day + 2 isn't calculated until 03:30 GMT
 
@@ -344,6 +356,7 @@ def get_hourly_wind_forecast_earliest(now_utc: datetime) -> NationalGridWindFore
 def get_half_hourly_solar_forecast(
     api_key: str, now: datetime
 ) -> NationalGridSolarForecast:
+    """Get half hourly solar forecast."""
     nearest_30_minutes = now + (now.min.replace(tzinfo=now.tzinfo) - now) % timedelta(
         minutes=30
     )
@@ -407,6 +420,7 @@ def get_half_hourly_solar_forecast(
 
 
 def get_current_price(api_key: str, today_utc: str) -> float:
+    """Get current grid price."""
     url = (
         "https://api.bmreports.com/BMRS/DERSYSDATA/v1?APIKey="
         + api_key
@@ -421,7 +435,26 @@ def get_current_price(api_key: str, today_utc: str) -> float:
     return currentPrice
 
 
+def get_current_frequency(api_key: str, now_utc: datetime) -> float:
+    """Get current grid frequency."""
+    url = (
+        "https://data.elexon.co.uk/bmrs/api/v1/system/frequency?format=json&from="
+        + (now_utc - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        + "&to="
+        + (now_utc + timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    )
+
+    response = requests.get(url, timeout=10)
+    items = json.loads(response.content)["data"]
+
+    if len(items) == 0:
+        raise UnexpectedDataError(url)
+
+    return float(items[len(items) - 1]["frequency"])
+
+
 def get_wind_data(today: str, tomorrow: str) -> NationalGridWindData:
+    """Get wind data."""
     url = "https://data.elexon.co.uk/bmrs/api/v1/forecast/generation/wind/peak?format=json"
     response = requests.get(url, timeout=10)
     items = json.loads(response.content)["data"]
@@ -451,6 +484,7 @@ def get_wind_data(today: str, tomorrow: str) -> NationalGridWindData:
 def get_demand_day_ahead_forecast(
     utc_now: datetime,
 ) -> NationalGridDemandDayAheadForecast:
+    """Get demand day ahead forecast."""
     utc_now_formatted = utc_now.strftime("%Y-%m-%dT%H:%M:%SZ")
     two_days = (utc_now + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -500,6 +534,7 @@ def get_demand_day_ahead_forecast(
 
 
 def get_national_grid_data(today_utc: str, now_utc: datetime) -> dict[str, Any]:
+    """Get national grid data."""
     today_minutes = now_utc.hour * 60 + now_utc.minute
     settlement_period = (today_minutes // 30) + 1
 
@@ -525,13 +560,21 @@ def get_national_grid_data(today_utc: str, now_utc: datetime) -> dict[str, Any]:
 
 def get_long_term_wind_forecast_eso_data(
     now: datetime,
-) -> (NationalGridWindForecastLongTerm, NationalGridWindForecastLongTerm,):
+) -> (
+    NationalGridWindForecastLongTerm,
+    NationalGridWindForecastLongTerm,
+):
+    """Get long term wind forecast."""
     url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=93c3048e-1dab-4057-a2a9-417540583929&limit=32000"
     response = requests.get(url, timeout=20)
 
     if response.status_code != 200:
         raise UnexpectedStatusCode(
-            url + " - " + "get_long_term_wind_forecast_eso_data" + " - " + str(response.status_code)
+            url
+            + " - "
+            + "get_long_term_wind_forecast_eso_data"
+            + " - "
+            + str(response.status_code)
         )
 
     data = json.loads(response.content)
@@ -608,12 +651,17 @@ def get_long_term_embedded_wind_and_solar_forecast(
     NationalGridWindForecast,
     NationalGridWindForecast,
 ):
+    """Get long term embedded wind and solar forecast."""
     url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=db6c038f-98af-4570-ab60-24d71ebd0ae5&limit=32000"
     response = requests.get(url, timeout=20)
 
     if response.status_code != 200:
         raise UnexpectedStatusCode(
-            url + " - " + "get_long_term_embedded_wind_and_solar_forecast" + " - " + str(response.status_code)
+            url
+            + " - "
+            + "get_long_term_embedded_wind_and_solar_forecast"
+            + " - "
+            + str(response.status_code)
         )
 
     data = json.loads(response.content)
@@ -714,6 +762,7 @@ def get_long_term_embedded_wind_and_solar_forecast(
 
 
 def get_dfs_requirements() -> DFSRequirements:
+    """Get DFS requirements."""
     url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=7914dd99-fe1c-41ba-9989-5784531c58bb&limit=15&sort=_id%20asc"
     response = requests.get(url, timeout=20)
 
@@ -757,6 +806,7 @@ def get_dfs_requirements() -> DFSRequirements:
 def get_demand_forecast(
     now: datetime, day_ahead_forecast: NationalGridDemandDayAheadForecast
 ) -> (NationalGridDemandForecast, NationalGridDemandForecast):
+    """Get demand forecast."""
     url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=7c0411cd-2714-4bb5-a408-adb065edf34d&limit=1000"
     response = requests.get(url, timeout=20)
 
@@ -1104,6 +1154,7 @@ def get_demand(grid_generation: NationalGridGeneration):
 
 # Just adds up all of the transfers from interconnectors and storage
 def get_transfers(grid_generation: NationalGridGeneration):
+    """Get transfers."""
     if grid_generation is None:
         raise UnexpectedDataError("grid generation None")
 
@@ -1119,6 +1170,7 @@ def get_transfers(grid_generation: NationalGridGeneration):
 
 
 def get_bmrs_data(url: str) -> OrderedDict[str, Any]:
+    """Get BMRS data."""
     response = requests.get(url, timeout=10)
     data = xmltodict.parse(response.content)
 
@@ -1129,6 +1181,7 @@ def get_bmrs_data(url: str) -> OrderedDict[str, Any]:
 
 
 def get_bmrs_data_items(url: str) -> OrderedDict[str, Any]:
+    """Get BMRS data items."""
     data = get_bmrs_data(url)
     if data["response"]["responseMetadata"]["httpCode"] == "204":
         return []
@@ -1149,20 +1202,27 @@ def get_bmrs_data_items(url: str) -> OrderedDict[str, Any]:
 
 
 def get_bmrs_data_latest(url: str) -> OrderedDict[str, Any]:
+    """Get latest BMRS data."""
+
     items = get_bmrs_data_items(url)
+
+    if len(items) == 0:
+        raise UnexpectedDataError(url)
+
     latestResponse = items[len(items) - 1]
 
     return latestResponse
 
 
 def obtain_data_with_fallback(current_data, key, func, *args):
+    """Obtain data with fallback."""
     try:
         return func(*args)
     except UnexpectedDataError as e:
         argument_str = ""
         if len(e.args) != 0:
             argument_str = e.args[0]
-        _LOGGER.warning("Data unexpected " + argument_str)
+        _LOGGER.warning("Data unexpected " + argument_str)  # noqa: G003
         return get_data_if_exists(current_data, key)
     except requests.exceptions.ReadTimeout as e:
         _LOGGER.warning("Read timeout error")
@@ -1176,9 +1236,9 @@ def obtain_data_with_fallback(current_data, key, func, *args):
         argument_str = ""
         if len(e.args) != 0:
             argument_str = e.args[0]
-        if type(argument_str) is not str:
+        if type(argument_str) is not str:  # noqa: E721
             argument_str = str(argument_str)
-        _LOGGER.warning("Unexpected status code " + argument_str)
+        _LOGGER.warning("Unexpected status code " + argument_str)  # noqa: G003
         return get_data_if_exists(current_data, key)
     except Exception as e:  # pylint: disable=broad-except
         _LOGGER.exception("Failed to obtain data")
@@ -1186,8 +1246,10 @@ def obtain_data_with_fallback(current_data, key, func, *args):
 
 
 def percentage_calc(int_sum, int_total):
+    """Calculate percentage."""
     return round(int_sum / int_total * 100, 2)
 
 
 def hour_minute_check(date: datetime, hour: int, minute: int) -> bool:
+    """Check if hour and minute match."""
     return date.hour == hour and date.minute == minute
