@@ -7,6 +7,6 @@
     "dependencies": [],
     "iot_class": "cloud_polling",
     "requirements": [],
-    "version": "0.0.40",
+    "version": "0.0.42",
     "config_flow": true
   }

@@ -75,8 +75,6 @@ def get_data(
     today = dt_util.now().strftime("%Y-%m-%d")
     tomorrow = (dt_util.now() + timedelta(days=1)).strftime("%Y-%m-%d")
 
-    today_full = dt_util.now()
-
     now_utc_full = dt_util.utcnow()
 
     current_price = 0
@@ -140,7 +138,7 @@ def get_data(
         current_data,
         "long_term_wind_forecast",
         get_long_term_wind_forecast_eso_data,
-        today_full,
+        now_utc_full,
     )
 
     if long_term_wind_forecast is not None:
@@ -154,7 +152,7 @@ def get_data(
         current_data,
         "long_term_embedded_wind_and_solar_forecast",
         get_long_term_embedded_wind_and_solar_forecast,
-        today_full,
+        now_utc_full,
     )
 
     if long_term_embedded_wind_and_solar_forecast is not None:
@@ -183,7 +181,7 @@ def get_data(
         current_data,
         "three_day_demand_and_fourteen_day_demand",
         get_demand_forecast,
-        today_full,
+        now_utc_full,
         demand_day_ahead_forecast,
     )
 
@@ -636,6 +634,9 @@ def get_long_term_wind_forecast_eso_data(
                 )
             )
 
+    if len(three_day_forecast) == 0 or len(fourteen_day_forecast) == 0:
+        raise UnexpectedDataError("Long term wind forecast is empty")
+
     three_day = NationalGridWindForecastLongTerm(forecast=three_day_forecast)
 
     fourteen_day = NationalGridWindForecastLongTerm(forecast=fourteen_day_forecast)
@@ -684,11 +685,12 @@ def get_long_term_embedded_wind_and_solar_forecast(
     all_records = data["result"]["records"]
     for record in all_records:
         formatted_datetime = datetime.strptime(
-            record["SETTLEMENT_DATE"], "%Y-%m-%dT%H:%M:%S"
+            record["DATE_GMT"], "%Y-%m-%dT%H:%M:%S"
         ).replace(tzinfo=tz.UTC)
 
-        formatted_datetime = formatted_datetime + timedelta(
-            minutes=30 * (int(record["SETTLEMENT_PERIOD"]) - 1)
+        time = datetime.strptime(record["TIME_GMT"], "%H:%M").time()
+        formatted_datetime = datetime.combine(formatted_datetime, time).replace(
+            tzinfo=tz.UTC
         )
 
         solar_forecast_val = int(record["EMBEDDED_SOLAR_FORECAST"])
@@ -743,6 +745,14 @@ def get_long_term_embedded_wind_and_solar_forecast(
                     start_time=formatted_datetime, generation=wind_forecast_val
                 )
             )
+
+    if (
+        len(three_day_solar_forecast) == 0
+        or len(three_day_wind_forecast) == 0
+        or len(solar_forecast) == 0
+        or len(wind_forecast) == 0
+    ):
+        raise UnexpectedDataError("Long term embedded wind and solar forecast is empty")
 
     three_day_solar = NationalGridSolarForecast(
         current_value=current_solar_forecast, forecast=three_day_solar_forecast
