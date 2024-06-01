@@ -70,6 +70,7 @@ def get_data(
     """Get data."""
     api_key = config[API_KEY]
 
+    yesterday_utc = (dt_util.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
     today_utc = dt_util.utcnow().strftime("%Y-%m-%d")
 
     today = dt_util.now().strftime("%Y-%m-%d")
@@ -81,7 +82,12 @@ def get_data(
     solar_forecast = None
     if config[API_KEY_PROVIDED]:
         current_price = obtain_data_with_fallback(
-            current_data, "sell_price", get_current_price, api_key, today_utc
+            current_data,
+            "sell_price",
+            get_current_price,
+            api_key,
+            today_utc,
+            yesterday_utc,
         )
         solar_forecast = obtain_data_with_fallback(
             current_data,
@@ -363,20 +369,17 @@ def get_half_hourly_solar_forecast(
     tomorrow = now + timedelta(days=1)
     day_after_tomorrow = now + timedelta(days=2)
 
-    times = [yesterday, now, tomorrow, day_after_tomorrow]
-    results = []
-    for date in times:
-        date_format = date.strftime("%Y-%m-%d")
-        url = (
-            "https://api.bmreports.com/BMRS/B1440/v1?APIKey="
-            + api_key
-            + "&SettlementDate="
-            + date_format
-            + "&Period=*"
-        )
+    url = (
+        "https://data.elexon.co.uk/bmrs/api/v1/forecast/generation/wind-and-solar/day-ahead?from="
+        + yesterday.strftime("%Y-%m-%d")
+        + "&to="
+        + day_after_tomorrow.strftime("%Y-%m-%d")
+        + "&processType=all"
+        + "&format=json"
+    )
 
-        response = get_bmrs_data_items(url)
-        results = results + response
+    response = requests.get(url, timeout=10)
+    results = json.loads(response.content)["data"]
 
     unique_date_list = []
     forecast = []
@@ -388,7 +391,7 @@ def get_half_hourly_solar_forecast(
         settlementDate = item["settlementDate"]
         settlementPeriod = item["settlementPeriod"]
 
-        unique_key = settlementDate + settlementPeriod
+        unique_key = str(settlementDate) + str(settlementPeriod)
         if unique_key in unique_date_list:
             continue
 
@@ -417,20 +420,22 @@ def get_half_hourly_solar_forecast(
     )
 
 
-def get_current_price(api_key: str, today_utc: str) -> float:
+def get_current_price(api_key: str, today_utc: str, yesterday_utc: str) -> float:
     """Get current grid price."""
     url = (
-        "https://api.bmreports.com/BMRS/DERSYSDATA/v1?APIKey="
-        + api_key
-        + "&FromSettlementDate="
+        "https://data.elexon.co.uk/bmrs/api/v1/balancing/pricing/market-index?from="
+        + yesterday_utc
+        + "&to="
         + today_utc
-        + "&ToSettlementDate="
-        + today_utc
-        + "&SettlementPeriod=*"
+        + "&dataProviders=APXMIDP&format=json"
     )
-    latestResponse = get_bmrs_data_latest(url)
-    currentPrice = round(float(latestResponse["systemSellPrice"]), 2)
-    return currentPrice
+
+    response = requests.get(url, timeout=10)
+    items = json.loads(response.content)["data"]
+    if len(items) == 0:
+        raise UnexpectedDataError(url)
+
+    return round(float(items[0]["price"]), 2)
 
 
 def get_current_frequency(api_key: str, now_utc: datetime) -> float:
@@ -1177,51 +1182,6 @@ def get_transfers(grid_generation: NationalGridGeneration):
         + grid_generation["denmark_mw"]
         + grid_generation["pumped_storage_mwh"]
     )
-
-
-def get_bmrs_data(url: str) -> OrderedDict[str, Any]:
-    """Get BMRS data."""
-    response = requests.get(url, timeout=10)
-    data = xmltodict.parse(response.content)
-
-    if int(data["response"]["responseMetadata"]["httpCode"]) == 403:
-        raise InvalidAuthError
-
-    return data
-
-
-def get_bmrs_data_items(url: str) -> OrderedDict[str, Any]:
-    """Get BMRS data items."""
-    data = get_bmrs_data(url)
-    if data["response"]["responseMetadata"]["httpCode"] == "204":
-        return []
-
-    if (
-        "response" not in data
-        or "responseBody" not in data["response"]
-        or "responseList" not in data["response"]["responseBody"]
-    ):
-        raise UnexpectedDataError(url)
-
-    responseList = data["response"]["responseBody"]["responseList"]
-    items = responseList["item"]
-    if type(items) is not list:
-        items = [items]
-
-    return items
-
-
-def get_bmrs_data_latest(url: str) -> OrderedDict[str, Any]:
-    """Get latest BMRS data."""
-
-    items = get_bmrs_data_items(url)
-
-    if len(items) == 0:
-        raise UnexpectedDataError(url)
-
-    latestResponse = items[len(items) - 1]
-
-    return latestResponse
 
 
 def obtain_data_with_fallback(current_data, key, func, *args):
