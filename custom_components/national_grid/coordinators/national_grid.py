@@ -375,6 +375,8 @@ def get_half_hourly_solar_forecast(
         + "&to="
         + day_after_tomorrow.strftime("%Y-%m-%d")
         + "&processType=all"
+        + "&settlementPeriodFrom=1"
+        + "&settlementPeriodTo=50"
         + "&format=json"
     )
 
@@ -427,7 +429,8 @@ def get_current_price(api_key: str, today_utc: str, yesterday_utc: str) -> float
         + yesterday_utc
         + "&to="
         + today_utc
-        + "&dataProviders=APXMIDP&format=json"
+        + "&settlementPeriodFrom=1"
+        + "&settlementPeriodTo=50&dataProviders=APXMIDP&format=json"
     )
 
     response = requests.get(url, timeout=10)
