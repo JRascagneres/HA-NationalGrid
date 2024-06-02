@@ -6,7 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import API_KEY_PROVIDED, DATA_CLIENT, DOMAIN
+from .const import DATA_CLIENT, DOMAIN
 from .coordinators.national_grid import NationalGridCoordinator
 
 PLATFORMS = [Platform.SENSOR]
@@ -35,7 +35,6 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     if config_entry.version == 1:
         new = {**config_entry.data}
-        new[API_KEY_PROVIDED] = True
         config_entry.version = 2
         hass.config_entries.async_update_entry(config_entry, data=new)
 

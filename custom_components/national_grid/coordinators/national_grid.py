@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from ..const import API_KEY, API_KEY_PROVIDED, DOMAIN
+from ..const import DOMAIN
 from ..errors import InvalidAuthError, UnexpectedDataError, UnexpectedStatusCode
 from ..models import (
     DFSRequirementItem,
@@ -68,7 +68,6 @@ def get_data(
     hass: HomeAssistant, config: Mapping[str, Any], current_data: NationalGridData
 ) -> NationalGridData:
     """Get data."""
-    api_key = config[API_KEY]
 
     yesterday_utc = (dt_util.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
     today_utc = dt_util.utcnow().strftime("%Y-%m-%d")
@@ -80,25 +79,23 @@ def get_data(
 
     current_price = 0
     solar_forecast = None
-    if config[API_KEY_PROVIDED]:
-        current_price = obtain_data_with_fallback(
-            current_data,
-            "sell_price",
-            get_current_price,
-            api_key,
-            today_utc,
-            yesterday_utc,
-        )
-        solar_forecast = obtain_data_with_fallback(
-            current_data,
-            "solar_forecast",
-            get_half_hourly_solar_forecast,
-            api_key,
-            now_utc_full,
-        )
+
+    current_price = obtain_data_with_fallback(
+        current_data,
+        "sell_price",
+        get_current_price,
+        today_utc,
+        yesterday_utc,
+    )
+    solar_forecast = obtain_data_with_fallback(
+        current_data,
+        "solar_forecast",
+        get_half_hourly_solar_forecast,
+        now_utc_full,
+    )
 
     current_grid_frequency = obtain_data_with_fallback(
-        current_data, "grid_frequency", get_current_frequency, api_key, now_utc_full
+        current_data, "grid_frequency", get_current_frequency, now_utc_full
     )
 
     wind_forecast = obtain_data_with_fallback(
@@ -123,7 +120,6 @@ def get_data(
         current_data,
         "grid_generation",
         get_generation_combined,
-        api_key,
         now_utc_full,
         today_utc,
     )
@@ -357,9 +353,7 @@ def get_hourly_wind_forecast_earliest(now_utc: datetime) -> NationalGridWindFore
     )
 
 
-def get_half_hourly_solar_forecast(
-    api_key: str, now: datetime
-) -> NationalGridSolarForecast:
+def get_half_hourly_solar_forecast(now: datetime) -> NationalGridSolarForecast:
     """Get half hourly solar forecast."""
     nearest_30_minutes = now + (now.min.replace(tzinfo=now.tzinfo) - now) % timedelta(
         minutes=30
@@ -422,7 +416,7 @@ def get_half_hourly_solar_forecast(
     )
 
 
-def get_current_price(api_key: str, today_utc: str, yesterday_utc: str) -> float:
+def get_current_price(today_utc: str, yesterday_utc: str) -> float:
     """Get current grid price."""
     url = (
         "https://data.elexon.co.uk/bmrs/api/v1/balancing/pricing/market-index?from="
@@ -441,7 +435,7 @@ def get_current_price(api_key: str, today_utc: str, yesterday_utc: str) -> float
     return round(float(items[0]["price"]), 2)
 
 
-def get_current_frequency(api_key: str, now_utc: datetime) -> float:
+def get_current_frequency(now_utc: datetime) -> float:
     """Get current grid frequency."""
     url = (
         "https://data.elexon.co.uk/bmrs/api/v1/system/frequency?format=json&from="
@@ -1062,7 +1056,7 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
     return national_grid_generation
 
 
-def get_generation_combined(api_key: str, now_utc_full: datetime, today_utc: str):
+def get_generation_combined(now_utc_full: datetime, today_utc: str):
     grid_generation = get_generation(
         now_utc_full,
     )

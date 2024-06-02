@@ -25,23 +25,11 @@ This integration can be added through HACS, this is the easiest and recommended 
 Note: A restart will be required for the integration to be registered.
 
 ## Setup
-You can optionally provide an API key. The API key is only required for the "current_price" sensor. If you opt not to provide an API key everything else should work as expected, however, you'll be missing that sensor.
-
-If you wish to obtain an API key one must be obtained from the BMRS API following the below instructions. Alternatively simply select the no API key option and skip to the later steps.
-
-1. Register [here](https://www.elexonportal.co.uk/)
-2. 'Register now' in the top right and follow the standard process
-3. Once the account is created login and you'll see 'My Portal' banner open.
-4. Inside the 'My Portal' banner click 'My Profile' - your API key is the 'Scripting Key'
-
-Note: Some users have seen that this key can take a significant period of time to become active. If the API key isn't accepted by the integration I'd recommend installing the integration without a key and then a day later, removing the integration and re-adding it with the key. The reason we recommend installing the integration without a key in the meantime is so that you can build up the data history for the sensors.
-
-
-Then follow the same steps that are using to setup most integrations:
+Follow the same steps that are using to setup most integrations:
 1. Head to settings then Devices & Services
 2. Click 'Add Integration' in the bottom right
 3. Search for 'National Grid'
-4. Enter API Key and hit Submit
+4. Click 'National Grid'
 5. Your device and entities will be created
 
 ## Sensors
@@ -324,7 +312,7 @@ This section outlines some graphs / views I have personally created with the dat
 
 ### BMRS - Balancing Mechanism Reporting Service
 An Elexon developed API responsible for reporting power generation, interconnectors, pricing and wind forecasting.\
-Data is provided largely in an XML format but their newer API offers data in JSON too, this integration is moving slowly to the new API, however, the new API is in beta so some endpoint are not yet suitable.
+Data is provided from their newer API which provides data in a JSON format (but optionally others too).
 
 ### Carbon Itensity API
 A National Grid ESO API developed in partner ship with the University of Oxford is responsible for reporting the carbon intensity of power generation in the UK in grams of carbon dioxide per kilowatt hour.\

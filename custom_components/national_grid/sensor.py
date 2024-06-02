@@ -17,7 +17,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import NationalGridCoordinator
-from .const import API_KEY_PROVIDED, DATA_CLIENT, DOMAIN
+from .const import DATA_CLIENT, DOMAIN
 
 SCAN_INTERVAL = timedelta(minutes=5)
 _LOGGER = logging.getLogger(__name__)
@@ -427,10 +427,7 @@ async def async_setup_entry(
     """Setup the National Grid sensor"""
     coordinator: NationalGridCoordinator = hass.data[DOMAIN][DATA_CLIENT]
 
-    sensors = SENSORS
-
-    if entry.data[API_KEY_PROVIDED]:
-        sensors = sensors + API_SENSORS
+    sensors = SENSORS + API_SENSORS
 
     async_add_entities(
         NationalGridSensor(coordinator, description) for description in sensors
