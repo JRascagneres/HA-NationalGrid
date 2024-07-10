@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import csv
+import dateutil
 from datetime import datetime, timedelta
 import io
 import json
@@ -550,7 +551,7 @@ def get_national_grid_data(today_utc: str, now_utc: datetime) -> dict[str, Any]:
     reader = csv.DictReader(io.StringIO(response_data))
     for row in reader:
         if (
-            row["SETTLEMENT_DATE"] == today_utc
+            dateutil.parser.parse(row["SETTLEMENT_DATE"]).date() == now_utc.date()
             and int(row["SETTLEMENT_PERIOD"]) == settlement_period
         ):
             return row
@@ -1068,7 +1069,7 @@ def get_generation_combined(now_utc_full: datetime, today_utc: str):
 
     national_grid_data = get_national_grid_data(today_utc, now_utc_full)
     if national_grid_data is None:
-        return UnexpectedDataError("National Grid ESO data None")
+        raise UnexpectedDataError("National Grid ESO data None")
 
     grid_generation["wind_mwh"] += int(national_grid_data["EMBEDDED_WIND_GENERATION"])
     grid_generation["solar_mwh"] = int(national_grid_data["EMBEDDED_SOLAR_GENERATION"])
