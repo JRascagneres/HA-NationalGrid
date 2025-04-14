@@ -691,7 +691,7 @@ def get_long_term_embedded_wind_and_solar_forecast(
             record["DATE_GMT"], "%Y-%m-%dT%H:%M:%S"
         ).replace(tzinfo=tz.UTC)
 
-        time = datetime.strptime(record["TIME_GMT"], "%H:%M").time()
+        time = datetime.strptime(record["TIME_GMT"], "%H:%M:%S").time()
         formatted_datetime = datetime.combine(formatted_datetime, time).replace(
             tzinfo=tz.UTC
         )
