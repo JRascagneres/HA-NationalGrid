@@ -539,7 +539,7 @@ def get_national_grid_data(today_utc: str, now_utc: datetime) -> dict[str, Any]:
     today_minutes = now_utc.hour * 60 + now_utc.minute
     settlement_period = (today_minutes // 30) + 1
 
-    url = "https://data.nationalgrideso.com/backend/dataset/7a12172a-939c-404c-b581-a6128b74f588/resource/177f6fa4-ae49-4182-81ea-0c6b35f26ca6/download/demanddataupdate.csv"
+    url = "https://api.neso.energy/dataset/7a12172a-939c-404c-b581-a6128b74f588/resource/177f6fa4-ae49-4182-81ea-0c6b35f26ca6/download/demanddataupdate.csv"
     response = requests.get(url, timeout=20)
 
     if response.status_code != 200:
