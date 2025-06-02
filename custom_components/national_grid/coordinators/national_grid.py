@@ -566,7 +566,7 @@ def get_long_term_wind_forecast_eso_data(
     NationalGridWindForecastLongTerm,
 ):
     """Get long term wind forecast."""
-    url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=93c3048e-1dab-4057-a2a9-417540583929&limit=32000"
+    url = "https://api.neso.energy/api/3/action/datastore_search?resource_id=93c3048e-1dab-4057-a2a9-417540583929&limit=32000"
     response = requests.get(url, timeout=20)
 
     if response.status_code != 200:
@@ -656,7 +656,7 @@ def get_long_term_embedded_wind_and_solar_forecast(
     NationalGridWindForecast,
 ):
     """Get long term embedded wind and solar forecast."""
-    url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=db6c038f-98af-4570-ab60-24d71ebd0ae5&limit=32000"
+    url = "https://api.neso.energy/api/3/action/datastore_search?resource_id=db6c038f-98af-4570-ab60-24d71ebd0ae5&limit=32000"
     response = requests.get(url, timeout=20)
 
     if response.status_code != 200:
@@ -776,7 +776,7 @@ def get_long_term_embedded_wind_and_solar_forecast(
 
 def get_dfs_requirements() -> DFSRequirements:
     """Get DFS requirements."""
-    url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=7914dd99-fe1c-41ba-9989-5784531c58bb&limit=15&sort=_id%20asc"
+    url = "https://api.neso.energy/api/3/action/datastore_search?resource_id=7914dd99-fe1c-41ba-9989-5784531c58bb&limit=15&sort=_id%20asc"
     response = requests.get(url, timeout=20)
 
     if response.status_code != 200:
@@ -820,7 +820,7 @@ def get_demand_forecast(
     now: datetime, day_ahead_forecast: NationalGridDemandDayAheadForecast
 ) -> (NationalGridDemandForecast, NationalGridDemandForecast):
     """Get demand forecast."""
-    url = "https://api.nationalgrideso.com/api/3/action/datastore_search?resource_id=7c0411cd-2714-4bb5-a408-adb065edf34d&limit=1000"
+    url = "https://api.neso.energy/api/3/action/datastore_search?resource_id=7c0411cd-2714-4bb5-a408-adb065edf34d&limit=1000"
     response = requests.get(url, timeout=20)
 
     if response.status_code != 200:
