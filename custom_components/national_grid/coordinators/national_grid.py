@@ -806,7 +806,7 @@ def get_dfs_requirements() -> DFSRequirements:
                 end_time=end_time,
                 required_mw=record["DFS Required MW"],
                 requirement_type=record["Service Requirement Type"],
-                despatch_type=record["Despatch Type"],
+                despatch_type=record["Dispatch Type"],
                 participants_eligible=participants_eligible,
             )
         )
@@ -1033,7 +1033,7 @@ def get_generation(utc_now: datetime) -> NationalGridGeneration:
                 national_grid_generation["other_mwh"] = generation
             elif fuelType == "INTFR" or fuelType == "INTELEC" or fuelType == "INTIFA2":
                 national_grid_generation["france_mwh"] += generation
-            elif fuelType == "INTIRL" or fuelType == "INTEW":
+            elif fuelType == "INTIRL" or fuelType == "INTEW" or fuelType == "INTGRNL":
                 national_grid_generation["ireland_mwh"] += generation
             elif fuelType == "INTNED":
                 national_grid_generation["netherlands_mwh"] = generation

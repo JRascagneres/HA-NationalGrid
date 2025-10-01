@@ -16,7 +16,7 @@ class NationalGridGeneration(TypedDict):
     hydro_mwh: int  # npshyd - non pumped storage hydro plant
     other_mwh: int  # other - undefined
     france_mwh: int  # intfr ( IFA ) + intelec ( ElecLink ) + intifa2 ( IFA2 )
-    ireland_mwh: int  # intirl ( Moyle ) + intew ( East-West )
+    ireland_mwh: int  # intirl ( Moyle ) + intew ( East-West ) + intgrnl ( GreenLink )
     netherlands_mwh: int  # intned ( Brit Ned )
     belgium_mwh: int  # intnem ( Nemo )
     norway_mwh: int  # intnsl ( North Sea Link )
