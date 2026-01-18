@@ -776,7 +776,7 @@ def get_long_term_embedded_wind_and_solar_forecast(
 
 def get_dfs_requirements() -> DFSRequirements:
     """Get DFS requirements."""
-    url = "https://api.neso.energy/api/3/action/datastore_search?resource_id=7914dd99-fe1c-41ba-9989-5784531c58bb&limit=15&sort=_id%20asc"
+    url = "https://api.neso.energy/api/3/action/datastore_search?resource_id=f5605e2b-b677-424c-8df7-d0ce4ee03cef&sort=Delivery%20Date%20desc,From%20desc&limit=10"
     response = requests.get(url, timeout=20)
 
     if response.status_code != 200:
@@ -793,18 +793,18 @@ def get_dfs_requirements() -> DFSRequirements:
         participants_eligible = record["Participant Bids Eligible"].split(",")
 
         start_time = datetime.strptime(
-            record["Delivery Date"] + "T" + record["From"], "%Y-%m-%dT%H:%M:%S"
+            record["Delivery Date"] + "T" + record["From"], "%Y-%m-%dT%H:%M"
         ).replace(tzinfo=tz.UTC)
 
         end_time = datetime.strptime(
-            record["Delivery Date"] + "T" + record["To"], "%Y-%m-%dT%H:%M:%S"
+            record["Delivery Date"] + "T" + record["To"], "%Y-%m-%dT%H:%M"
         ).replace(tzinfo=tz.UTC)
 
         all_requirements.append(
             DFSRequirementItem(
                 start_time=start_time,
                 end_time=end_time,
-                required_mw=record["DFS Required MW"],
+                required_mw=record["Service Requirement MW"],
                 requirement_type=record["Service Requirement Type"],
                 despatch_type=record["Dispatch Type"],
                 participants_eligible=participants_eligible,
