@@ -806,7 +806,7 @@ def get_dfs_requirements() -> DFSRequirements:
                 end_time=end_time,
                 required_mw=record["Service Requirement MW"],
                 requirement_type=record["Service Requirement Type"],
-                despatch_type=record["Dispatch Type"],
+                despatch_type=record["Despatch Type"],
                 participants_eligible=participants_eligible,
             )
         )
