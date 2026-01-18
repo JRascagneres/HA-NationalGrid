@@ -54,20 +54,37 @@ Follow the same steps that are using to setup most integrations:
 | National Grid Grid Generation France MWh | sensor.national_grid_grid_generation_france_mwh | Current electricity generation from France interconnectors in MWh |
 | National Grid Grid Generation Ireland MWh | sensor.national_grid_grid_generation_ireland_mwh | Current electricity generation from Ireland interconnectors in MWh |
 | National Grid Grid Generation Netherlands MWh | sensor.national_grid_grid_generation_netherlands_mwh | Current electricity generation from Netherlands interconnectors in MWh |
-| National Grid Grid Generation Belgium MWh | sensor.national_grid_grid_generation_belgium_mwh | Current electricity generation from France interconnectors in MWh |
-| National Grid Grid Generation France MWh | sensor.national_grid_grid_generation_france_mwh | Current electricity generation from Belgium interconnectors in MWh |
+| National Grid Grid Generation Belgium MWh | sensor.national_grid_grid_generation_belgium_mwh | Current electricity generation from Belgium interconnectors in MWh |
 | National Grid Grid Generation Norway MWh | sensor.national_grid_grid_generation_norway_mwh | Current electricity generation from Norway interconnectors in MWh |
+| National Grid Grid Generation Denmark MW | sensor.national_grid_grid_generation_denmark_mw | Current electricity generation from Denmark interconnectors in MW |
 | National Grid Total Generation | sensor.total_generation_mwh | Total generation in MWh |
 | National Grid Total Demand MWh | sensor.national_grid_total_demand_mwh | Total electricity demand in MWh. This is all generation with the inclusion of interconnectors and storage. |
 | National Grid Total Transfers MWh | sensor.national_grid_total_transfers_mwh | Total electricity transfers in MWh. This is all the transfers which are interconnectors and storage. |
-National Grid Grid Generation Fossil Fuel Percentage | sensor.national_grid_fossil_fuel_percentage_generation | Percentage of total grid generation that is generated from fossil fuel sources: Gas, Oil & Coal
-National Grid Grid Generation Renewable Percentage | sensor.national_grid_renewable_percentage_generation | Percentage of total grid generation that is generated from renewable sources: Solar, Wind & Hydro
-National Grid Grid Generation Low Carbon Percentage | sensor.national_grid_low_carbon_percentage_generation | Percentage of total grid generation that is generated from renewable & low carbon sources: Solar, Wind, Hydro & Nuclear
-National Grid Grid Generation Low Carbon With Biomass Percentage | sensor.low_carbon_with_biomass_percentage_generation | Percentage of total grid generation that is generated from renewable & low carbon sources including Biomass (which is contentious): Solar, Wind, Hydro, Nuclear & Biomass
-National Grid Grid Generation Other Percentage | sensor.national_grid_other_percentage_generation | Percentage of total grid generation that is generated from 'other' sources: Nuclear, Biomass & Unknown / Other
+| National Grid Grid Generation Fossil Fuel Percentage | sensor.national_grid_fossil_fuel_percentage_generation | Percentage of total grid generation that is generated from fossil fuel sources: Gas, Oil & Coal |
+| National Grid Grid Generation Renewable Percentage | sensor.national_grid_renewable_percentage_generation | Percentage of total grid generation that is generated from renewable sources: Solar, Wind & Hydro |
+| National Grid Grid Generation Low Carbon Percentage | sensor.national_grid_low_carbon_percentage_generation | Percentage of total grid generation that is generated from renewable & low carbon sources: Solar, Wind, Hydro & Nuclear |
+| National Grid Grid Generation Low Carbon With Biomass Percentage | sensor.low_carbon_with_biomass_percentage_generation | Percentage of total grid generation that is generated from renewable & low carbon sources including Biomass (which is contentious): Solar, Wind, Hydro, Nuclear & Biomass |
+| National Grid Grid Generation Other Percentage | sensor.national_grid_other_percentage_generation | Percentage of total grid generation that is generated from 'other' sources: Nuclear, Biomass & Unknown / Other |
 
 
 Note that the associated time sensors are important. Updates can lag by a few minutes and are in UTC so its possible that 'today' and 'tomorrow' aren't entirely accurate for a period of time.
+
+## Update Frequencies
+
+The integration uses differentiated update intervals to balance data freshness with API load:
+
+| Data Category | Update Interval | Sensors |
+|---------------|-----------------|---------|
+| Grid Frequency | 2 minutes | Current Grid Frequency |
+| Sell Price | 5 minutes | Current Sell Price |
+| Grid Generation | 5 minutes | All generation, demand, transfers, percentage sensors |
+| Carbon Intensity | 15 minutes | Current Carbon Intensity |
+| Wind Forecasts | 30 minutes | Wind Forecast, Wind Forecast Earliest, Wind Forecast Now To Three Day, Wind Forecast Fourteen Day, Embedded Wind/Solar Forecasts |
+| Solar Forecasts | 30 minutes | Solar Forecast |
+| Demand Forecasts | 30 minutes | Grid Demand Day Ahead, Three Day, and Fourteen Day Forecasts |
+| DFS Requirements | 30 minutes | DFS Requirements |
+
+All sensors include a `last_update` attribute showing when the data was last refreshed (in ISO 8601 format).
 
 ### Grid Generation Sensor Entity
 
@@ -93,6 +110,7 @@ netherlands_mwh
 biomass_mwh
 belgium_mwh
 norway_mwh
+denmark_mw
 total_generation_mwh
 fossil_fuel_percentage_generation
 renewable_percentage_generation
@@ -100,6 +118,7 @@ low_carbon_percentage_generation
 low_carbon_with_biomass_percentage_generation
 other_percentage_generation
 grid_collection_time
+last_update
 ```
 
 ### Day Ahead Solar Forecast
@@ -114,6 +133,7 @@ forecast:
     - start_time: ...
       generation: ...
 ...
+last_update
 ```
 
 ### Wind Forecast Entity
@@ -128,6 +148,7 @@ forecast:
     - start_time: ...
       generation: ...
 ...
+last_update
 ```
 
 ### Wind Forecast Earliest Entity
@@ -280,7 +301,7 @@ forecast:
 ```
 
 ### National Grid DFS Requirements Entity
-National Grid DFS Requirements - Shows last 15 only
+National Grid DFS Requirements - Shows last 10 only
 
 Name - National Grid DFS Requirements
 ID - sensor.national_grid_dfs_requirements
@@ -296,6 +317,7 @@ requirements:
       participants_eligible:
         - ...
 ...
+last_update
 ```
 
 ## Uses / Examples

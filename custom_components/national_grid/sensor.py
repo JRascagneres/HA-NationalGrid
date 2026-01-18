@@ -30,6 +30,7 @@ class NationalGridSensorEntityDescription(SensorEntityDescription):
     # For backwards compat, allow description to override unique ID key to use
     unique_id: str | None = None
     extra_attributes_key: str | None = None
+    update_category: str | None = None  # Maps to UPDATE_INTERVALS key
 
 
 API_SENSORS = (
@@ -40,6 +41,7 @@ API_SENSORS = (
         native_unit_of_measurement="GBP/MWh",
         icon="mdi:currency-gbp",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="sell_price",
     ),
     NationalGridSensorEntityDescription(
         key="solar_forecast.current_value",
@@ -49,6 +51,7 @@ API_SENSORS = (
         icon="mdi:solar-power-variant",
         state_class=SensorStateClass.MEASUREMENT,
         extra_attributes_key="solar_forecast",
+        update_category="solar_forecast",
     ),
 )
 
@@ -60,6 +63,7 @@ SENSORS = (
         native_unit_of_measurement="Hz",
         icon="mdi:sine-wave",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_frequency",
     ),
     NationalGridSensorEntityDescription(
         key="carbon_intensity",
@@ -68,6 +72,7 @@ SENSORS = (
         native_unit_of_measurement="gCO2eq/kWh",
         icon="mdi:molecule-co2",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="carbon_intensity",
     ),
     NationalGridSensorEntityDescription(
         key="wind_data.today_peak",
@@ -76,6 +81,7 @@ SENSORS = (
         native_unit_of_measurement="MW",
         icon="mdi:wind-turbine",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="wind_data.tomorrow_peak",
@@ -84,6 +90,7 @@ SENSORS = (
         native_unit_of_measurement="MW",
         icon="mdi:wind-turbine",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="wind_data.today_peak_time",
@@ -93,6 +100,7 @@ SENSORS = (
         icon="mdi:clock",
         state_class=None,
         device_class=SensorDeviceClass.DATE,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="wind_data.tomorrow_peak_time",
@@ -102,6 +110,7 @@ SENSORS = (
         icon="mdi:clock",
         state_class=None,
         device_class=SensorDeviceClass.DATE,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="total_demand_mwh",
@@ -110,6 +119,7 @@ SENSORS = (
         native_unit_of_measurement="MW",
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="total_transfers_mwh",
@@ -118,6 +128,7 @@ SENSORS = (
         native_unit_of_measurement="MW",
         icon="mdi:transmission-tower-export",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
 )
 
@@ -129,6 +140,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:fire",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.oil_mwh",
@@ -137,6 +149,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:oil",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.coal_mwh",
@@ -145,6 +158,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:fire",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.biomass_mwh",
@@ -153,6 +167,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:leaf",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.nuclear_mwh",
@@ -161,6 +176,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:turbine",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.wind_mwh",
@@ -169,6 +185,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:wind-turbine",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.national_wind_mwh",
@@ -177,6 +194,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:wind-turbine",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.embedded_wind_mwh",
@@ -185,6 +203,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:wind-turbine",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.solar_mwh",
@@ -193,6 +212,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:solar-power-variant",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.pumped_storage_mwh",
@@ -201,6 +221,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:pump",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.hydro_mwh",
@@ -209,6 +230,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:hydro-power",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.other_mwh",
@@ -217,6 +239,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:help",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.france_mwh",
@@ -225,6 +248,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.ireland_mwh",
@@ -233,6 +257,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.netherlands_mwh",
@@ -241,6 +266,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.belgium_mwh",
@@ -249,6 +275,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.norway_mwh",
@@ -257,6 +284,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.denmark_mw",
@@ -265,6 +293,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.total_generation_mwh",
@@ -273,6 +302,7 @@ SENSORS_GENERATION = (
         native_unit_of_measurement="MW",
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.MEASUREMENT,
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="wind_forecast.current_value",
@@ -282,6 +312,7 @@ SENSORS_GENERATION = (
         icon="mdi:wind-turbine",
         state_class=SensorStateClass.MEASUREMENT,
         extra_attributes_key="wind_forecast",
+        update_category="wind_forecast",
     ),
     NationalGridSensorEntityDescription(
         key="wind_forecast_earliest.current_value",
@@ -291,6 +322,7 @@ SENSORS_GENERATION = (
         icon="mdi:wind-turbine",
         state_class=SensorStateClass.MEASUREMENT,
         extra_attributes_key="wind_forecast_earliest",
+        update_category="wind_forecast",
     ),
     NationalGridSensorEntityDescription(
         key=None,
@@ -298,6 +330,7 @@ SENSORS_GENERATION = (
         unique_id="now_to_three_wind_forecast",
         icon="mdi:wind-turbine",
         extra_attributes_key="now_to_three_wind_forecast",
+        update_category="wind_forecast",
     ),
     NationalGridSensorEntityDescription(
         key=None,
@@ -305,6 +338,7 @@ SENSORS_GENERATION = (
         unique_id="fourteen_day_wind_forecast",
         icon="mdi:wind-turbine",
         extra_attributes_key="fourteen_wind_forecast",
+        update_category="wind_forecast",
     ),
     NationalGridSensorEntityDescription(
         key="fourteen_embedded_solar.current_value",
@@ -314,6 +348,7 @@ SENSORS_GENERATION = (
         icon="mdi:solar-power-variant",
         state_class=SensorStateClass.MEASUREMENT,
         extra_attributes_key="fourteen_embedded_solar",
+        update_category="wind_forecast",
     ),
     NationalGridSensorEntityDescription(
         key="three_embedded_solar.current_value",
@@ -323,6 +358,7 @@ SENSORS_GENERATION = (
         icon="mdi:solar-power-variant",
         state_class=SensorStateClass.MEASUREMENT,
         extra_attributes_key="three_embedded_solar",
+        update_category="wind_forecast",
     ),
     NationalGridSensorEntityDescription(
         key="fourteen_embedded_wind.current_value",
@@ -332,6 +368,7 @@ SENSORS_GENERATION = (
         icon="mdi:wind-turbine",
         state_class=SensorStateClass.MEASUREMENT,
         extra_attributes_key="fourteen_embedded_wind",
+        update_category="wind_forecast",
     ),
     NationalGridSensorEntityDescription(
         key="three_embedded_wind.current_value",
@@ -341,6 +378,7 @@ SENSORS_GENERATION = (
         icon="mdi:wind-turbine",
         state_class=SensorStateClass.MEASUREMENT,
         extra_attributes_key="three_embedded_wind",
+        update_category="wind_forecast",
     ),
     NationalGridSensorEntityDescription(
         key="grid_demand_day_ahead_forecast.current_value",
@@ -350,6 +388,7 @@ SENSORS_GENERATION = (
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.MEASUREMENT,
         extra_attributes_key="grid_demand_day_ahead_forecast",
+        update_category="demand_forecast",
     ),
     NationalGridSensorEntityDescription(
         key="grid_demand_three_day_forecast.current_value",
@@ -359,6 +398,7 @@ SENSORS_GENERATION = (
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.MEASUREMENT,
         extra_attributes_key="grid_demand_three_day_forecast",
+        update_category="demand_forecast",
     ),
     NationalGridSensorEntityDescription(
         key="grid_demand_fourteen_day_forecast.current_value",
@@ -368,6 +408,7 @@ SENSORS_GENERATION = (
         icon="mdi:transmission-tower",
         state_class=SensorStateClass.MEASUREMENT,
         extra_attributes_key="grid_demand_fourteen_day_forecast",
+        update_category="demand_forecast",
     ),
     NationalGridSensorEntityDescription(
         key=None,
@@ -375,6 +416,7 @@ SENSORS_GENERATION = (
         unique_id="dfs_requirements",
         icon="mdi:leaf",
         extra_attributes_key="dfs_requirements",
+        update_category="dfs_requirements",
     ),
     NationalGridSensorEntityDescription(
         key=None,
@@ -382,6 +424,7 @@ SENSORS_GENERATION = (
         unique_id="grid_generation",
         icon="mdi:transmission-tower",
         extra_attributes_key="grid_generation",
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.fossil_fuel_percentage_generation",
@@ -389,6 +432,7 @@ SENSORS_GENERATION = (
         unique_id="fossil_fuel_percentage_generation",
         native_unit_of_measurement="%",
         icon="mdi:molecule-co2",
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.renewable_percentage_generation",
@@ -396,6 +440,7 @@ SENSORS_GENERATION = (
         unique_id="renewable_percentage_generation",
         native_unit_of_measurement="%",
         icon="mdi:leaf",
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.low_carbon_percentage_generation",
@@ -403,6 +448,7 @@ SENSORS_GENERATION = (
         unique_id="low_carbon_percentage_generation",
         native_unit_of_measurement="%",
         icon="mdi:leaf",
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.low_carbon_with_biomass_percentage_generation",
@@ -410,6 +456,7 @@ SENSORS_GENERATION = (
         unique_id="low_carbon_with_biomass_percentage_generation",
         native_unit_of_measurement="%",
         icon="mdi:leaf",
+        update_category="grid_generation",
     ),
     NationalGridSensorEntityDescription(
         key="grid_generation.other_percentage_generation",
@@ -417,6 +464,7 @@ SENSORS_GENERATION = (
         unique_id="other_percentage_generation",
         native_unit_of_measurement="%",
         icon="mdi:help",
+        update_category="grid_generation",
     ),
 )
 
@@ -488,22 +536,36 @@ class NationalGridSensor(CoordinatorEntity[NationalGridCoordinator], SensorEntit
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        if not self.entity_description.extra_attributes_key:
-            return None
+        attrs = {}
 
-        keys = self.entity_description.extra_attributes_key.split(".")
+        # Get base attributes from extra_attributes_key if defined
+        if self.entity_description.extra_attributes_key:
+            keys = self.entity_description.extra_attributes_key.split(".")
 
-        value = self.coordinator.data[keys[0]]
-        if len(keys) > 1:
-            for key in keys[1:]:
-                if value is None:
-                    return None
-                if key.isnumeric():
-                    value = value[int(key)]
-                    continue
-                value = value[key]
+            value = self.coordinator.data[keys[0]]
+            if len(keys) > 1:
+                for key in keys[1:]:
+                    if value is None:
+                        break
+                    if key.isnumeric():
+                        value = value[int(key)]
+                    else:
+                        value = value[key]
 
-        return value
+            if value is not None:
+                if isinstance(value, dict):
+                    attrs.update(value)
+                else:
+                    attrs["data"] = value
+
+        # Add timing attributes based on update_category
+        category = self.entity_description.update_category
+        if category:
+            last_update = self.coordinator.last_updates.get(category)
+            if last_update:
+                attrs["last_update"] = last_update.isoformat()
+
+        return attrs if attrs else None
 
     @property
     def native_unit_of_measurement(self) -> str | None:
