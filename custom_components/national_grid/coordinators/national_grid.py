@@ -21,8 +21,12 @@ from ..const import DOMAIN
 from ..errors import InvalidAuthError, UnexpectedDataError, UnexpectedStatusCode
 
 from ..models import (
+    CarbonForecastData,
+    CarbonForecastItem,
     DFSRequirementItem,
     DFSRequirements,
+    MarginForecastData,
+    MarginForecastItem,
     NationalGridData,
     NationalGridDemandDayAheadForecast,
     NationalGridDemandDayAheadForecastItem,
@@ -35,6 +39,9 @@ from ..models import (
     NationalGridWindForecast,
     NationalGridWindForecastItem,
     NationalGridWindForecastLongTerm,
+    RegionalCarbonData,
+    SystemWarningData,
+    SystemWarningItem,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,7 +54,9 @@ UPDATE_INTERVALS = {
     "grid_frequency": timedelta(minutes=2),
     "sell_price": timedelta(minutes=5),
     "grid_generation": timedelta(minutes=5),
+    "system_warnings": timedelta(minutes=5),
     "carbon_intensity": timedelta(minutes=15),
+    "margin_indicators": timedelta(minutes=15),
     "wind_forecast": timedelta(minutes=30),
     "solar_forecast": timedelta(minutes=30),
     "demand_forecast": timedelta(minutes=30),
@@ -231,15 +240,28 @@ def get_data(
         total_demand_mwh = get_existing("total_demand_mwh")
         total_transfers_mwh = get_existing("transfers_mwh")
 
-    # Carbon intensity - updates every 15 minutes
+    # Carbon intensity and forecast - updates every 15 minutes
     if should_update("carbon_intensity", last_updates, now_utc_full):
         carbon_intensity = obtain_data_with_fallback(
             current_data, "carbon_intensity", get_carbon_intensity, now_utc_full
         )
+        carbon_intensity_forecast = obtain_data_with_fallback(
+            current_data, "carbon_intensity_forecast", get_carbon_intensity_forecast, now_utc_full
+        )
+        # Regional carbon - only if region_id is configured
+        region_id = config.get("region_id") if config else None
+        if region_id is not None:
+            regional_carbon = obtain_data_with_fallback(
+                current_data, "regional_carbon", get_regional_carbon_data, region_id
+            )
+        else:
+            regional_carbon = None
         if carbon_intensity is not None:
             mark_updated("carbon_intensity", last_updates, now_utc_full)
     else:
         carbon_intensity = get_existing("carbon_intensity")
+        carbon_intensity_forecast = get_existing("carbon_intensity_forecast")
+        regional_carbon = get_existing("regional_carbon")
 
     # Wind forecasts - updates every 30 minutes
     if should_update("wind_forecast", last_updates, now_utc_full):
@@ -351,6 +373,26 @@ def get_data(
     else:
         dfs_requirements = get_existing("dfs_requirements")
 
+    # Margin forecast - updates every 15 minutes
+    if should_update("margin_indicators", last_updates, now_utc_full):
+        margin_forecast = obtain_data_with_fallback(
+            current_data, "margin_forecast", get_margin_forecast
+        )
+        if margin_forecast is not None:
+            mark_updated("margin_indicators", last_updates, now_utc_full)
+    else:
+        margin_forecast = get_existing("margin_forecast")
+
+    # System warnings - updates every 5 minutes
+    if should_update("system_warnings", last_updates, now_utc_full):
+        system_warnings = obtain_data_with_fallback(
+            current_data, "system_warnings", get_system_warnings
+        )
+        if system_warnings is not None:
+            mark_updated("system_warnings", last_updates, now_utc_full)
+    else:
+        system_warnings = get_existing("system_warnings")
+
     return NationalGridData(
         sell_price=current_price,
         carbon_intensity=carbon_intensity,
@@ -375,6 +417,10 @@ def get_data(
         total_demand_mwh=total_demand_mwh,
         total_transfers_mwh=total_transfers_mwh,
         dfs_requirements=dfs_requirements,
+        margin_forecast=margin_forecast,
+        system_warnings=system_warnings,
+        carbon_intensity_forecast=carbon_intensity_forecast,
+        regional_carbon=regional_carbon,
     )
 
 
@@ -1216,6 +1262,216 @@ def obtain_data_with_fallback(current_data, key, func, *args):
     except Exception as e:  # pylint: disable=broad-except
         _LOGGER.exception("[%s] Failed to obtain data: %s", func_name, e)
         return get_data_if_exists(current_data, key, func_name)
+
+
+def get_margin_forecast() -> MarginForecastData:
+    """Get daily margin forecast data from BMRS API.
+
+    This shows the forecasted operating margin (MW) for upcoming days.
+    A low margin indicates potential grid stress.
+    """
+    url = "https://data.elexon.co.uk/bmrs/api/v1/forecast/margin/daily?format=json"
+    data = fetch_json(url, timeout=10, function_name="get_margin_forecast")
+    items = data.get("data", [])
+
+    if len(items) == 0:
+        raise UnexpectedDataError(f"get_margin_forecast: No data returned - {url}")
+
+    forecast = []
+    current_margin = 0
+
+    for i, item in enumerate(items):
+        forecast_date = item.get("forecastDate", "")
+        margin = int(item.get("margin", 0))
+        publish_time_str = item.get("publishTime", "")
+
+        try:
+            publish_time = datetime.strptime(
+                publish_time_str, "%Y-%m-%dT%H:%M:%S%z"
+            )
+        except (ValueError, TypeError):
+            publish_time = datetime.now(tz.UTC)
+
+        forecast_item = MarginForecastItem(
+            forecast_date=forecast_date,
+            margin=margin,
+            publish_time=publish_time,
+        )
+        forecast.append(forecast_item)
+
+        # First item is the closest forecast (today or tomorrow)
+        if i == 0:
+            current_margin = margin
+
+    return MarginForecastData(
+        current_margin=current_margin,
+        forecast=forecast,
+    )
+
+
+def get_system_warnings() -> SystemWarningData:
+    """Get system warnings from BMRS API."""
+    url = "https://data.elexon.co.uk/bmrs/api/v1/system/warnings?format=json"
+    data = fetch_json(url, timeout=10, function_name="get_system_warnings")
+    items = data.get("data", [])
+
+    warnings = []
+    current_warning = None
+
+    # Warning types that indicate margin stress
+    margin_warning_types = {"EMN", "HRDC", "DCI", "NRAPM"}
+
+    for item in items:
+        warning_type = item.get("warningType", "")
+        publish_time_str = item.get("publishTime", "")
+        text = item.get("text", "")
+
+        try:
+            publish_time = datetime.strptime(
+                publish_time_str, "%Y-%m-%dT%H:%M:%S%z"
+            )
+        except (ValueError, TypeError):
+            publish_time = datetime.now(tz.UTC)
+
+        warning_item = SystemWarningItem(
+            warning_type=warning_type,
+            publish_time=publish_time,
+            text=text,
+        )
+        warnings.append(warning_item)
+
+        # Set current warning if it's a margin-related warning
+        if warning_type in margin_warning_types and current_warning is None:
+            current_warning = warning_type
+
+    return SystemWarningData(
+        current_warning=current_warning,
+        warnings=warnings,
+    )
+
+
+def get_carbon_intensity_forecast(now_utc: datetime) -> CarbonForecastData:
+    """Get 48-hour carbon intensity forecast from Carbon Intensity API."""
+    formatted_datetime = now_utc.strftime("%Y-%m-%dT%H:%MZ")
+    url = f"https://api.carbonintensity.org.uk/intensity/{formatted_datetime}/fw48h"
+    data = fetch_json(url, timeout=10, function_name="get_carbon_intensity_forecast")
+
+    if "data" not in data:
+        raise UnexpectedDataError(
+            f"get_carbon_intensity_forecast: No data field - {url}"
+        )
+
+    forecast = []
+    current_intensity = 0
+    current_index = "moderate"
+
+    for i, item in enumerate(data["data"]):
+        start_time_str = item.get("from", "")
+        try:
+            start_time = datetime.strptime(start_time_str, "%Y-%m-%dT%H:%MZ").replace(
+                tzinfo=tz.UTC
+            )
+        except (ValueError, TypeError):
+            continue
+
+        intensity_data = item.get("intensity", {})
+        intensity = int(intensity_data.get("forecast", 0))
+        index = intensity_data.get("index", "moderate")
+
+        forecast_item = CarbonForecastItem(
+            start_time=start_time,
+            intensity=intensity,
+            index=index,
+        )
+        forecast.append(forecast_item)
+
+        # First item is current
+        if i == 0:
+            current_intensity = intensity
+            current_index = index
+
+    return CarbonForecastData(
+        current_intensity=current_intensity,
+        current_index=current_index,
+        forecast=forecast,
+    )
+
+
+# Region ID to name mapping (based on DNO regions)
+CARBON_REGIONS = {
+    1: "North Scotland",
+    2: "South Scotland",
+    3: "North West England",
+    4: "North East England",
+    5: "Yorkshire",
+    6: "North Wales & Merseyside",
+    7: "South Wales",
+    8: "West Midlands",
+    9: "East Midlands",
+    10: "East England",
+    11: "South West England",
+    12: "South England",
+    13: "London",
+    14: "South East England",
+}
+
+
+def get_regional_carbon_data(region_id: int) -> RegionalCarbonData:
+    """Get regional carbon intensity data from Carbon Intensity API."""
+    url = f"https://api.carbonintensity.org.uk/regional/regionid/{region_id}"
+    data = fetch_json(url, timeout=10, function_name="get_regional_carbon_data")
+
+    if "data" not in data or len(data["data"]) == 0:
+        raise UnexpectedDataError(
+            f"get_regional_carbon_data: No data field - {url}"
+        )
+
+    region_data = data["data"][0]
+    region_name = region_data.get("shortname", CARBON_REGIONS.get(region_id, "Unknown"))
+
+    # Get current intensity
+    intensity_data = region_data.get("data", [{}])[0].get("intensity", {})
+    current_intensity = int(intensity_data.get("forecast", 0))
+    current_index = intensity_data.get("index", "moderate")
+
+    # Get forecast - need a different endpoint for regional forecast
+    forecast_url = f"https://api.carbonintensity.org.uk/regional/regionid/{region_id}/fw48h"
+    try:
+        forecast_data = fetch_json(
+            forecast_url, timeout=10, function_name="get_regional_carbon_data_forecast"
+        )
+        forecast = []
+
+        if "data" in forecast_data and "data" in forecast_data["data"]:
+            for item in forecast_data["data"]["data"]:
+                start_time_str = item.get("from", "")
+                try:
+                    start_time = datetime.strptime(
+                        start_time_str, "%Y-%m-%dT%H:%MZ"
+                    ).replace(tzinfo=tz.UTC)
+                except (ValueError, TypeError):
+                    continue
+
+                intensity_item = item.get("intensity", {})
+                intensity = int(intensity_item.get("forecast", 0))
+                index = intensity_item.get("index", "moderate")
+
+                forecast_item = CarbonForecastItem(
+                    start_time=start_time,
+                    intensity=intensity,
+                    index=index,
+                )
+                forecast.append(forecast_item)
+    except Exception:
+        forecast = []
+
+    return RegionalCarbonData(
+        region_id=region_id,
+        region_name=region_name,
+        current_intensity=current_intensity,
+        current_index=current_index,
+        forecast=forecast,
+    )
 
 
 def percentage_calc(int_sum, int_total):

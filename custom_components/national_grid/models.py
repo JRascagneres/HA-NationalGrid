@@ -95,6 +95,48 @@ class DFSRequirements(TypedDict):
     requirements: list[DFSRequirementItem]
 
 
+class MarginForecastItem(TypedDict):
+    forecast_date: str
+    margin: int
+    publish_time: datetime
+
+
+class MarginForecastData(TypedDict):
+    current_margin: int
+    forecast: list[MarginForecastItem]
+
+
+class SystemWarningItem(TypedDict):
+    warning_type: str
+    publish_time: datetime
+    text: str
+
+
+class SystemWarningData(TypedDict):
+    current_warning: str | None
+    warnings: list[SystemWarningItem]
+
+
+class CarbonForecastItem(TypedDict):
+    start_time: datetime
+    intensity: int
+    index: str
+
+
+class CarbonForecastData(TypedDict):
+    current_intensity: int
+    current_index: str
+    forecast: list[CarbonForecastItem]
+
+
+class RegionalCarbonData(TypedDict):
+    region_id: int
+    region_name: str
+    current_intensity: int
+    current_index: str
+    forecast: list[CarbonForecastItem]
+
+
 class NationalGridData(TypedDict):
     sell_price: float
     carbon_intensity: int
@@ -142,3 +184,8 @@ class NationalGridData(TypedDict):
     total_transfers_mwh: int
 
     dfs_requirements: DFSRequirements
+
+    margin_forecast: MarginForecastData | None
+    system_warnings: SystemWarningData | None
+    carbon_intensity_forecast: CarbonForecastData | None
+    regional_carbon: RegionalCarbonData | None

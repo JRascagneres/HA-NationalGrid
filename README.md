@@ -30,7 +30,10 @@ Follow the same steps that are using to setup most integrations:
 2. Click 'Add Integration' in the bottom right
 3. Search for 'National Grid'
 4. Click 'National Grid'
-5. Your device and entities will be created
+5. Optionally select a region for regional carbon intensity data (England, Scotland, Wales, or specific DNO regions)
+6. Your device and entities will be created
+
+**Note:** If you configure a region, you will get additional regional carbon intensity sensors. You can reconfigure the integration later to change or add a region.
 
 ## Sensors
 | Name | ID | Description |
@@ -65,6 +68,13 @@ Follow the same steps that are using to setup most integrations:
 | National Grid Grid Generation Low Carbon Percentage | sensor.national_grid_low_carbon_percentage_generation | Percentage of total grid generation that is generated from renewable & low carbon sources: Solar, Wind, Hydro & Nuclear |
 | National Grid Grid Generation Low Carbon With Biomass Percentage | sensor.low_carbon_with_biomass_percentage_generation | Percentage of total grid generation that is generated from renewable & low carbon sources including Biomass (which is contentious): Solar, Wind, Hydro, Nuclear & Biomass |
 | National Grid Grid Generation Other Percentage | sensor.national_grid_other_percentage_generation | Percentage of total grid generation that is generated from 'other' sources: Nuclear, Biomass & Unknown / Other |
+| National Grid Forecast Margin | sensor.national_grid_forecast_margin | Daily operating margin forecast in MW showing headroom between supply and demand |
+| National Grid System Warning | sensor.national_grid_system_warning | Current system warning type (e.g., "Electricity Margin Notice") or "None" |
+| National Grid Margin Warning Active | binary_sensor.national_grid_margin_warning_active | Binary sensor indicating whether a margin warning is currently active |
+| National Grid Carbon Intensity Forecast | sensor.national_grid_carbon_intensity_forecast | 48-hour carbon intensity forecast with half-hourly resolution |
+| National Grid Carbon Intensity Index | sensor.national_grid_carbon_intensity_index | Current carbon intensity level: very low, low, moderate, high, or very high |
+| National Grid Regional Carbon Intensity | sensor.national_grid_regional_carbon_intensity | Regional carbon intensity in gCO2/kWh (only if region configured) |
+| National Grid Regional Carbon Index | sensor.national_grid_regional_carbon_index | Regional carbon intensity level (only if region configured) |
 
 
 Note that the associated time sensors are important. Updates can lag by a few minutes and are in UTC so its possible that 'today' and 'tomorrow' aren't entirely accurate for a period of time.
@@ -78,7 +88,9 @@ The integration uses differentiated update intervals to balance data freshness w
 | Grid Frequency | 2 minutes | Current Grid Frequency |
 | Sell Price | 5 minutes | Current Sell Price |
 | Grid Generation | 5 minutes | All generation, demand, transfers, percentage sensors |
-| Carbon Intensity | 15 minutes | Current Carbon Intensity |
+| System Warnings | 5 minutes | System Warning, Margin Warning Active |
+| Carbon Intensity | 15 minutes | Current Carbon Intensity, Carbon Intensity Index, Regional Carbon Intensity, Regional Carbon Index |
+| Margin Indicators | 15 minutes | Forecast Margin, Carbon Intensity Forecast |
 | Wind Forecasts | 30 minutes | Wind Forecast, Wind Forecast Earliest, Wind Forecast Now To Three Day, Wind Forecast Fourteen Day, Embedded Wind/Solar Forecasts |
 | Solar Forecasts | 30 minutes | Solar Forecast |
 | Demand Forecasts | 30 minutes | Grid Demand Day Ahead, Three Day, and Fourteen Day Forecasts |
@@ -303,9 +315,9 @@ forecast:
 ### National Grid DFS Requirements Entity
 National Grid DFS Requirements - Shows last 10 only
 
-Name - National Grid DFS Requirements
-ID - sensor.national_grid_dfs_requirements
-State - National Grid DFS Requirements
+Name - National Grid DFS Requirements\
+ID - sensor.national_grid_dfs_requirements\
+State - National Grid DFS Requirements\
 Attributes:
 ```
 requirements:
@@ -317,6 +329,106 @@ requirements:
       participants_eligible:
         - ...
 ...
+last_update
+```
+
+### Forecast Margin Entity
+Daily operating margin forecast showing the headroom between available supply and predicted demand.
+
+Name - Forecast Margin\
+ID - sensor.national_grid_forecast_margin\
+State - Current margin value in MW\
+Attributes:
+```
+forecast:
+    - date: "2024-01-15"
+      margin: 5200
+    - date: "2024-01-16"
+      margin: 4800
+...
+last_update
+```
+
+### System Warning Entity
+Current grid system warning status. Shows the type of any active warning or "None" when grid is operating normally.
+
+Name - System Warning\
+ID - sensor.national_grid_system_warning\
+State - Warning type (e.g., "Electricity Margin Notice") or "None"\
+Attributes:
+```
+warnings:
+    - type: "Electricity Margin Notice"
+      message: "..."
+      published: "2024-01-15T18:00:00Z"
+...
+last_update
+```
+
+### Margin Warning Active Entity
+Binary sensor that indicates when a margin warning is currently active on the grid.
+
+Name - Margin Warning Active\
+ID - binary_sensor.national_grid_margin_warning_active\
+State - on/off\
+Attributes:
+```
+last_update
+```
+
+### Carbon Intensity Forecast Entity
+48-hour carbon intensity forecast with half-hourly resolution.
+
+Name - Carbon Intensity Forecast\
+ID - sensor.national_grid_carbon_intensity_forecast\
+State - Current carbon intensity value in gCO2/kWh\
+Attributes:
+```
+forecast:
+    - from: "2024-01-15T12:00Z"
+      to: "2024-01-15T12:30Z"
+      intensity: 185
+      index: "moderate"
+    - from: "2024-01-15T12:30Z"
+      to: "2024-01-15T13:00Z"
+      intensity: 178
+      index: "moderate"
+...
+last_update
+```
+
+### Carbon Intensity Index Entity
+Current carbon intensity level categorisation.
+
+Name - Carbon Intensity Index\
+ID - sensor.national_grid_carbon_intensity_index\
+State - Intensity level (very low, low, moderate, high, very high)\
+Attributes:
+```
+last_update
+```
+
+### Regional Carbon Intensity Entity
+Regional carbon intensity data. Only available when a region is configured during setup.
+
+Name - Regional Carbon Intensity\
+ID - sensor.national_grid_regional_carbon_intensity\
+State - Current regional carbon intensity in gCO2/kWh\
+Attributes:
+```
+region: "South England"
+last_update
+```
+
+### Regional Carbon Index Entity
+Regional carbon intensity level. Only available when a region is configured during setup.
+
+Name - Regional Carbon Index\
+ID - sensor.national_grid_regional_carbon_index\
+State - Intensity level (very low, low, moderate, high, very high)\
+Attributes:
+```
+region: "South England"
 last_update
 ```
 

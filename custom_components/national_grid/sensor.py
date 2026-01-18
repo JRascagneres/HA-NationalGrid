@@ -468,6 +468,70 @@ SENSORS_GENERATION = (
     ),
 )
 
+SENSORS_MARGIN_INDICATORS = (
+    NationalGridSensorEntityDescription(
+        key="margin_forecast.current_margin",
+        name="Forecast Margin",
+        unique_id="forecast_margin",
+        native_unit_of_measurement="MW",
+        icon="mdi:gauge",
+        state_class=SensorStateClass.MEASUREMENT,
+        extra_attributes_key="margin_forecast",
+        update_category="margin_indicators",
+    ),
+)
+
+SENSORS_SYSTEM_WARNINGS = (
+    NationalGridSensorEntityDescription(
+        key="system_warnings.current_warning",
+        name="System Warning",
+        unique_id="system_warning",
+        icon="mdi:alert",
+        extra_attributes_key="system_warnings",
+        update_category="system_warnings",
+    ),
+)
+
+SENSORS_CARBON_FORECAST = (
+    NationalGridSensorEntityDescription(
+        key="carbon_intensity_forecast.current_intensity",
+        name="Carbon Intensity Forecast",
+        unique_id="carbon_intensity_forecast",
+        native_unit_of_measurement="gCO2eq/kWh",
+        icon="mdi:molecule-co2",
+        state_class=SensorStateClass.MEASUREMENT,
+        extra_attributes_key="carbon_intensity_forecast",
+        update_category="carbon_intensity",
+    ),
+    NationalGridSensorEntityDescription(
+        key="carbon_intensity_forecast.current_index",
+        name="Carbon Intensity Index",
+        unique_id="carbon_intensity_index",
+        icon="mdi:leaf",
+        update_category="carbon_intensity",
+    ),
+)
+
+SENSORS_REGIONAL_CARBON = (
+    NationalGridSensorEntityDescription(
+        key="regional_carbon.current_intensity",
+        name="Regional Carbon Intensity",
+        unique_id="regional_carbon_intensity",
+        native_unit_of_measurement="gCO2eq/kWh",
+        icon="mdi:molecule-co2",
+        state_class=SensorStateClass.MEASUREMENT,
+        extra_attributes_key="regional_carbon",
+        update_category="carbon_intensity",
+    ),
+    NationalGridSensorEntityDescription(
+        key="regional_carbon.current_index",
+        name="Regional Carbon Index",
+        unique_id="regional_carbon_index",
+        icon="mdi:leaf",
+        update_category="carbon_intensity",
+    ),
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -485,6 +549,31 @@ async def async_setup_entry(
         NationalGridSensor(coordinator, description)
         for description in SENSORS_GENERATION
     )
+
+    # Add margin indicator sensors (LOLP and De-rated Margin)
+    async_add_entities(
+        NationalGridSensor(coordinator, description)
+        for description in SENSORS_MARGIN_INDICATORS
+    )
+
+    # Add system warning sensors
+    async_add_entities(
+        NationalGridSensor(coordinator, description)
+        for description in SENSORS_SYSTEM_WARNINGS
+    )
+
+    # Add carbon forecast sensors
+    async_add_entities(
+        NationalGridSensor(coordinator, description)
+        for description in SENSORS_CARBON_FORECAST
+    )
+
+    # Add regional carbon sensors only if region is configured
+    if entry.data.get("region_id") is not None:
+        async_add_entities(
+            NationalGridSensor(coordinator, description)
+            for description in SENSORS_REGIONAL_CARBON
+        )
 
     return True
 
@@ -516,13 +605,20 @@ class NationalGridSensor(CoordinatorEntity[NationalGridCoordinator], SensorEntit
         return True
 
     @property
-    def native_value(self) -> float | datetime | None:
+    def native_value(self) -> float | datetime | str | None:
         if not self.entity_description.key:
             return self.entity_description.name
 
+        if self.coordinator.data is None:
+            return None
+
         keys = self.entity_description.key.split(".")
 
-        value = self.coordinator.data[keys[0]]
+        # Get top-level value, return None if it doesn't exist or is None
+        value = self.coordinator.data.get(keys[0])
+        if value is None:
+            return None
+
         if len(keys) > 1:
             for key in keys[1:]:
                 if value is None:
@@ -530,7 +626,11 @@ class NationalGridSensor(CoordinatorEntity[NationalGridCoordinator], SensorEntit
                 if key.isnumeric():
                     value = value[int(key)]
                     continue
-                value = value[key]
+                value = value.get(key) if isinstance(value, dict) else None
+
+        # For system_warning, return "None" string instead of None
+        if self.entity_description.unique_id == "system_warning" and value is None:
+            return "None"
 
         return value
 
@@ -538,11 +638,14 @@ class NationalGridSensor(CoordinatorEntity[NationalGridCoordinator], SensorEntit
     def extra_state_attributes(self) -> dict[str, Any]:
         attrs = {}
 
+        if self.coordinator.data is None:
+            return None
+
         # Get base attributes from extra_attributes_key if defined
         if self.entity_description.extra_attributes_key:
             keys = self.entity_description.extra_attributes_key.split(".")
 
-            value = self.coordinator.data[keys[0]]
+            value = self.coordinator.data.get(keys[0])
             if len(keys) > 1:
                 for key in keys[1:]:
                     if value is None:
@@ -550,7 +653,7 @@ class NationalGridSensor(CoordinatorEntity[NationalGridCoordinator], SensorEntit
                     if key.isnumeric():
                         value = value[int(key)]
                     else:
-                        value = value[key]
+                        value = value.get(key) if isinstance(value, dict) else None
 
             if value is not None:
                 if isinstance(value, dict):

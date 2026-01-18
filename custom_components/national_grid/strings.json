@@ -1,18 +1,16 @@
 {
     "config": {
         "step": {
-            "include_api": {
-                "description": "You can optionally provide an Elexon Portal API key. If you don't you won't get the 'current_price' sensor",
+            "user": {
+                "title": "National Grid Configuration",
+                "description": "Optionally select your GB region for regional carbon intensity data. Leave as 'None' for national data only.",
                 "data": {
-                    "api_key_provided": "Provide API Key"
-                }
-            },
-            "add_api_key": {
-                "description": "Visit https://www.elexonportal.co.uk/ to request a token. Follow documentation.",
-                "data": {
-                    "api_key": "API Key"
+                    "region_id": "Region"
                 }
             }
+        },
+        "error": {
+            "connection_error": "Failed to connect to API. Please try again."
         }
     }
 }
