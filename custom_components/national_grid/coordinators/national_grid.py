@@ -232,13 +232,13 @@ def get_data(
             current_data, "total_demand_mwh", get_demand, grid_generation
         )
         total_transfers_mwh = obtain_data_with_fallback(
-            current_data, "transfers_mwh", get_transfers, grid_generation
+            current_data, "total_transfers_mwh", get_transfers, grid_generation
         )
     else:
         grid_generation = get_existing("grid_generation")
         wind_data = get_existing("wind_data")
         total_demand_mwh = get_existing("total_demand_mwh")
-        total_transfers_mwh = get_existing("transfers_mwh")
+        total_transfers_mwh = get_existing("total_transfers_mwh")
 
     # Carbon intensity and forecast - updates every 15 minutes
     if should_update("carbon_intensity", last_updates, now_utc_full):
